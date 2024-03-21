@@ -27,6 +27,10 @@ class UsuarioManager(BaseUserManager):
 
         return self.create_user(email, password, **extra_fields)
 
+class Rol(models.Model):
+    descripcion = models.CharField(max_length=100)
+    class Meta:
+        db_table = "roles"
 
 # Modificamos la clase de autenticación de usuario de django para que el usuario se autentique con el email
 class Usuario(AbstractUser):
@@ -35,6 +39,7 @@ class Usuario(AbstractUser):
     email = models.EmailField(_("email address"), unique=True)
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
+    rol = models.ForeignKey(Rol, on_delete=models.CASCADE, null=True, blank=True)
 
     objects = UsuarioManager()
 
