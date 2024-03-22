@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "authApi.apps.AuthapiConfig",
+    "selection.apps.SelectionConfig",
 ]
 
 REST_FRAMEWORK = {
