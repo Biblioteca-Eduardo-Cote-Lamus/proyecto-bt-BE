@@ -14,6 +14,6 @@ def upload_file(request):
 
         res = [student for student in postulados.values()]
 
-        return Response({"message": res}, status=200)
+        return Response({"data": res}, status=200)
 
     return Response({"message": "File not uploaded"}, status=400)
