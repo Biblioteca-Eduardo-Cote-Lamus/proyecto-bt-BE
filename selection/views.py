@@ -4,9 +4,11 @@ import csv
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.contrib.auth import get_user_model
-from .models import Selection, SelectionState
+from django.db import transaction
+from .models import Selection, SelectionState, BecaTrabajo
 from .serializers import SelectionStateSerializer
 from .utils import get_name_and_last_name, make_random_password
+from authApi.serializers import UserSerializer
 
 
 @api_view(["GET"])
@@ -32,31 +34,46 @@ def confirm_list_of_students(request):
 
     data = request.data.get("data")
     Usuario = get_user_model()
+    
+    try:
+        with transaction.atomic():
+            for applicant in data["applicants"]:
+                last_name, first_name = get_name_and_last_name(applicant["nombre"])
+                if not Usuario.objects.filter(id=applicant["codigo"]).exists():
+                    password = make_random_password(special_chars=False, length=12)
+                    user = Usuario.objects.create_user(
+                        email=applicant["correo"],
+                        password=password,
+                        first_name=first_name,
+                        last_name=last_name,
+                        id=applicant["codigo"],
+                    )
+                    beca = BecaTrabajo.objects.create(
+                        code=applicant["codigo"],
+                        first_name=first_name,
+                        last_name=last_name,
+                        email=applicant["correo"],
+                        selection=current_selection,
+                        student=user,
+                    )
+                    with open(f"credentials.csv", "a", newline="\n") as f:
+                        writer = csv.writer(f)
+                        writer.writerow([user.id, user.email, password])
+                    user.save()
+                    beca.save()
 
-    for applicant in data["applicants"]:
-        last_name, first_name = get_name_and_last_name(applicant["nombre"])
-        if not Usuario.objects.filter(id=applicant["codigo"]).exists():
-            password = make_random_password(special_chars=False, length=12)
-            user = Usuario.objects.create_user(
-                email=applicant["correo"],
-                password=password,
-                first_name=first_name,
-                last_name=last_name,
-                id=applicant["codigo"],
-            )
-            with open(f"credentials.csv", "a", newline="\n") as f:
-                writer = csv.writer(f)
-                writer.writerow([user.id, user.email, password])
-            user.save()
-    # update the selection state to the next state
-    current_selection.current_state = SelectionState.objects.get(id=2)
-    current_selection.register_limit_date = datetime.datetime.strptime(
-        data["limit"], "%Y-%m-%dT%H:%M:%S.%fZ"
-    ).date()
-    current_selection.save()
-    return Response(
-        {"ok": True, "message": "Usuarios creados correctamente"}, status=200
-    )
+            # update the selection state to the next state
+            current_selection.current_state = SelectionState.objects.get(id=2)
+            current_selection.register_limit_date = datetime.datetime.strptime(
+                data["limit"], "%Y-%m-%dT%H:%M:%S.%fZ"
+            ).date()
+            current_selection.save()
+        return Response(
+            {"ok": True, "message": "Usuarios creados correctamente"}, status=200
+        )
+    except Exception as e:
+        print(e.with_traceback())
+        return Response({"message": str(e), "ok": False}, status=400)
 
 
 @api_view(["POST"])
@@ -75,3 +92,13 @@ def upload_file(request):
         return Response({"data": res}, status=200)
 
     return Response({"message": "File not uploaded"}, status=400)
+
+
+@api_view(["GET"])
+def get_applicants_list(request):
+    User = get_user_model()
+    # no staff and no superadmin users
+    applicantsSerializer = UserSerializer(
+        User.objects.filter(is_staff=False, is_superuser=False), many=True
+    )
+    return Response({"data": applicantsSerializer.data}, status=200)
