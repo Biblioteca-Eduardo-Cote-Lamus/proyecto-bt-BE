@@ -44,7 +44,7 @@ def confirm_list_of_students(request):
             )
             user.save()
     # update the selection state to the next state
-    # current_selection.current_state = SelectionState.objects.get(id=2)
+    current_selection.current_state = SelectionState.objects.get(id=2)
     current_selection.register_limit_date = datetime.datetime.strptime(
         data["limit"], "%Y-%m-%dT%H:%M:%S.%fZ"
     ).date()

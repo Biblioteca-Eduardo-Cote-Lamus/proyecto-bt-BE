@@ -11,9 +11,9 @@ class SelectionState(models.Model):
 class Selection(models.Model):
     semester = models.CharField(max_length=100, blank=True, null=True)
     current_state = models.ForeignKey(SelectionState, on_delete=models.CASCADE, blank=True, null=True)
-    register_limit_date = models.DateField(blank=True, null=True)
-    selection_start_date = models.DateField(blank=True, null=True)
-    selection_end_date = models.DateField(blank=True, null=True)
+    register_limit_date = models.DateTimeField(blank=True, null=True)
+    selection_start_date = models.DateTimeField(blank=True, null=True)
+    selection_end_date = models.DateTimeField(blank=True, null=True)
     active = models.BooleanField(default=False)
     class Meta:
         db_table = 'seleccion'

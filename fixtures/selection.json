@@ -1,0 +1,13 @@
+[
+    {
+        "model": "selection.Selection",
+        "pk": 1,
+        "fields": {
+            "semester": "2024-I",
+            "current_state": 1,
+            "selection_start_date": "2024-01-01",
+            "selection_end_date": "2024-04-01",
+            "active": 1
+        }
+    }
+]
