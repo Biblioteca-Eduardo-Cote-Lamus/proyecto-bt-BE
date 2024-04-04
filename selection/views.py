@@ -1,5 +1,6 @@
 import pandas as pd
 import datetime
+import csv
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.contrib.auth import get_user_model
@@ -35,13 +36,17 @@ def confirm_list_of_students(request):
     for applicant in data["applicants"]:
         last_name, first_name = get_name_and_last_name(applicant["nombre"])
         if not Usuario.objects.filter(id=applicant["codigo"]).exists():
+            password = make_random_password(special_chars=False, length=12)
             user = Usuario.objects.create_user(
                 email=applicant["correo"],
-                password=make_random_password(special_chars=False, length=12),
+                password=password,
                 first_name=first_name,
                 last_name=last_name,
                 id=applicant["codigo"],
             )
+            with open(f"credentials.csv", "a", newline="\n") as f:
+                writer = csv.writer(f)
+                writer.writerow([user.id, user.email, password])
             user.save()
     # update the selection state to the next state
     current_selection.current_state = SelectionState.objects.get(id=2)
