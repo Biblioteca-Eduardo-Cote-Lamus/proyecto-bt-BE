@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from .models import Selection, SelectionState, BecaTrabajo
 from .serializers import SelectionStateSerializer
-from .utils import get_name_and_last_name, make_random_password
+from .utils import get_name_and_last_name, make_random_password,left_time
 from authApi.serializers import UserSerializer
 
 
@@ -75,7 +75,6 @@ def confirm_list_of_students(request):
         print(e.with_traceback())
         return Response({"message": str(e), "ok": False}, status=400)
 
-
 @api_view(["POST"])
 def upload_file(request):
     postulantes = request.FILES.get("file")
@@ -102,3 +101,31 @@ def get_applicants_list(request):
         User.objects.filter(is_staff=False, is_superuser=False), many=True
     )
     return Response({"data": applicantsSerializer.data}, status=200)
+
+@api_view(["GET"])
+def check_register_form_state(request):
+    current_selection = Selection.objects.last()
+    current_date = datetime.datetime.now().isoformat()
+    time_res = left_time(current_selection.register_limit_date.isoformat().split("+")[0], current_date)
+    data = {
+        "untilAvailable": current_selection.register_limit_date.date().isoformat(),
+        "timeLeft": time_res,
+        "available": current_selection.active,
+    }
+    return Response(data, status=200)
+
+@api_view(["GET"])
+def check_if_user_can_send_form(request, id: int):
+    user = BecaTrabajo.objects.filter(code=id).values()[0]
+    current_selection = Selection.objects.last()
+    
+    # if the user has not sent the form, the limit date has not passed and the selection process is active, thats means the user can send the form
+    if not all(value for value in user.values()) and datetime.datetime.now().date() < current_selection.register_limit_date.date() and current_selection.active:
+        return Response({"message": "User can send form", "canSend": True, "code":1}, status=200)
+
+    # if the user has sent the form, the limit date has not passed and the selection process is active, thats means the user has already submitted the form
+    if all(value for value in user.values()) and datetime.datetime.now().date() < current_selection.register_limit_date.date() and current_selection.active:
+        return Response({"message": "User has already submitted the form", "canSend": False, "code": 2}, status=400)
+    
+    # if the user has not sent the form, the limit date has passed and the selection process is active, thats means the user can't send the form
+    return Response({"message": "User can't send form, time is over", "canSend": False, "code": 3}, status=400)
