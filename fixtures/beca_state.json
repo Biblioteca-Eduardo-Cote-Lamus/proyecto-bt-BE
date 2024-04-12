@@ -1,0 +1,37 @@
+[
+    {
+        "model": "selection.BecaState",
+        "pk": 1,
+        "fields": {
+            "state": "en lista"
+        }
+    },
+    {
+        "model": "selection.BecaState",
+        "pk": 2,
+        "fields": {
+            "state": "Enviando informacion"
+        }
+    },
+    {
+        "model": "selection.BecaState",
+        "pk": 3,
+        "fields": {
+            "state": "En preseleccion"
+        }
+    },
+    {
+        "model": "selection.BecaState",
+        "pk": 4,
+        "fields": {
+            "state": "Horario"
+        }
+    },
+    {
+        "model": "selection.BecaState",
+        "pk": 5,
+        "fields": {
+            "state": "Seleccionado"
+        }
+    }
+]

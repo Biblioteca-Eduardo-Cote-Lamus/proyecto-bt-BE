@@ -1,3 +1,4 @@
+import json
 import pandas as pd
 import datetime
 import csv
@@ -124,25 +125,15 @@ def check_register_form_state(request):
 def check_if_user_can_send_form(request, id: int):
     user = BecaTrabajo.objects.filter(code=id).values()[0]
     current_selection = Selection.objects.last()
-
+    print(user)
     # if the user has not sent the form, the limit date has not passed and the selection process is active, thats means the user can send the form
-    if (
-        not all(value for value in user.values())
-        and datetime.datetime.now().date()
-        < current_selection.register_limit_date.date()
-        and current_selection.active
-    ):
+    if  not user['sended_form'] and (datetime.datetime.now().timestamp() < current_selection.register_limit_date.timestamp()) and (current_selection.active):
         return Response(
             {"message": "User can send form", "canSend": True, "code": 1}, status=200
         )
 
     # if the user has sent the form, the limit date has not passed and the selection process is active, thats means the user has already submitted the form
-    if (
-        all(value for value in user.values())
-        and datetime.datetime.now().date()
-        < current_selection.register_limit_date.date()
-        and current_selection.active
-    ):
+    if  user['sended_form'] and (datetime.datetime.now().timestamp() < current_selection.register_limit_date.timestamp()) and (current_selection.active):
         return Response(
             {
                 "message": "User has already submitted the form",
@@ -226,3 +217,35 @@ def check_schedule_file(request):
         schedule_row_index += 1
 
     return Response({"message": "El formato del reporte es el correcto", "ok": True}, status=200)
+
+@api_view(["POST"])
+def register_user(request):
+    photo = request.FILES.get("photo")
+    schedule = request.FILES.get("schedule")
+    data = json.loads(request.data.get("data"))
+    names, last_names, birthday, address, gender, academic, motivation, studies, id = data.values()
+    
+    try:
+        photo.name = f'{id}.{photo.name.split('.')[-1]}'
+        schedule.name = f'{id}.{schedule.name.split('.')[-1]}'
+        with transaction.atomic():
+            beca = BecaTrabajo.objects.get(code=str(id))
+            beca.first_name = names
+            beca.last_name = last_names
+            beca.birth_date = birthday.split('T')[0]
+            beca.address = address
+            beca.gender = gender
+            beca.career = academic
+            beca.photo = photo
+            beca.schedule = schedule
+            beca.motivation = motivation
+            beca.extra_studies  = studies
+            beca.save()
+        return Response({ "ok": True, 'message': 'Se ha procesado el formulario de manera exitosa.'}, status=200)   
+    except Exception as e:
+        print(e.with_traceback())
+        return Response({ "ok": False}, status=500)   
+
+
+
+    
