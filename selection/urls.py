@@ -7,7 +7,10 @@ from .views import (
     check_register_form_state,
     check_if_user_can_send_form,
     check_schedule_file,
-    register_user
+    register_user,
+    get_beca_current_state,
+    extend_register_form_date,
+    confirm_list_step2
 )
 
 urlpatterns = [
@@ -19,4 +22,7 @@ urlpatterns = [
     path("check-user-form/<int:id>", check_if_user_can_send_form, name="Check if user can send form"),
     path( "check-schedule-file", check_schedule_file, name="Check if schedule file is valid",),
     path( "register-form", register_user, name=" Register user form",),
+    path( "check-current-state-beca/<int:id>", get_beca_current_state, name="Return the current beca state",),
+    path( "extended-date-form", extend_register_form_date, name="Extended date of register form",),
+    path( "confirm-register-form", confirm_list_step2, name="Update the current state selection and the current state of becas",),
 ]

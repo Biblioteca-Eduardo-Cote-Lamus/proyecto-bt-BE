@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from .models import Selection, SelectionState, BecaTrabajo
-from .serializers import SelectionStateSerializer
+from .serializers import SelectionStateSerializer, BecaTrabajoListForm
 from .utils import get_name_and_last_name, make_random_password, left_time
 from authApi.serializers import UserSerializer
 
@@ -57,6 +57,7 @@ def confirm_list_of_students(request):
                         email=applicant["correo"],
                         selection=current_selection,
                         student=user,
+                        current_state_id = 2
                     )
                     with open(f"credentials.csv", "a", newline="\n") as f:
                         writer = csv.writer(f)
@@ -98,10 +99,9 @@ def upload_file(request):
 
 @api_view(["GET"])
 def get_applicants_list(request):
-    User = get_user_model()
     # no staff and no superadmin users
-    applicantsSerializer = UserSerializer(
-        User.objects.filter(is_staff=False, is_superuser=False), many=True
+    applicantsSerializer = BecaTrabajoListForm(
+       BecaTrabajo.objects.all(), many=True
     )
     return Response({"data": applicantsSerializer.data}, status=200)
 
@@ -109,14 +109,20 @@ def get_applicants_list(request):
 @api_view(["GET"])
 def check_register_form_state(request):
     current_selection = Selection.objects.last()
-    current_date = datetime.datetime.now().isoformat()
+    current_date = datetime.datetime.now()
+
+    #return the time left to close the register form 
     time_res = left_time(
-        current_selection.register_limit_date.isoformat().split("+")[0], current_date
+        current_selection.register_limit_date.isoformat().split("+")[0], current_date.isoformat()
     )
+
+    # check if the the form is available
+    available = current_selection.register_limit_date.timestamp() < current_date.timestamp()
+
     data = {
         "untilAvailable": current_selection.register_limit_date.date().isoformat(),
         "timeLeft": time_res,
-        "available": current_selection.active,
+        "available": not available,
     }
     return Response(data, status=200)
 
@@ -159,7 +165,7 @@ def check_schedule_file(request):
             {"message": "Solo se aceptan archivos pdf"}, status=400
         )
 
-    pdf = tabula.read_pdf(schedule_file, lattice=True, pages="all")
+    pdf = tabula.read_pdf(schedule_file, lattice=True, pages="all",encoding='latin-1')
 
     schedule_column_format = [
         "Hora",
@@ -240,12 +246,42 @@ def register_user(request):
             beca.schedule = schedule
             beca.motivation = motivation
             beca.extra_studies  = studies
+            beca.sended_form = True
             beca.save()
         return Response({ "ok": True, 'message': 'Se ha procesado el formulario de manera exitosa.'}, status=200)   
     except Exception as e:
         print(e.with_traceback())
         return Response({ "ok": False}, status=500)   
 
+@api_view(['GET'])
+def get_beca_current_state(request, id):
+    try:
+        beca = get_user_model().objects.get(id=id).becatrabajo
+        return Response({'currentState': beca.current_state_id}, status=200)
+    except Exception as e:
+        return Response({'msg': str(e)}, status=500)
 
+@api_view(['POST'])
+def extend_register_form_date(request):
+    try:
+        with transaction.atomic():
+            date = datetime.datetime.fromisoformat(request.data.get('date')).replace(hour=23, minute=59, second=59, microsecond=59999)
+            selection = Selection.objects.last()
+            selection.register_limit_date = date
+            selection.save()
+        return Response({'ok': True, 'msg': 'Fecha actualiza'}, status=200)
+    except Exception as e:
+        return Response({'ok': False, 'msg': str(e)}, status=500)
+    
+@api_view(['GET'])
+def confirm_list_step2(request):
+    try:
+        with transaction.atomic():
+            selection = Selection.objects.filter(active=True).update(current_state_id=3)  # change the current selection id to state 3 (preseleccion)
+            # all becatrabajos who submitted registration form, update status also
+            BecaTrabajo.objects.filter(sended_form=True).update(current_state_id=3)
+        return Response({'ok': True, 'msg': 'Se ha actualizado el estado actual del proceso de seleccion'}, status=200)
+    except Exception as e:
+        return Response({'ok': False, 'msg': str(e)}, status=500)
 
     
