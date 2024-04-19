@@ -229,23 +229,22 @@ def register_user(request):
     photo = request.FILES.get("photo")
     schedule = request.FILES.get("schedule")
     data = json.loads(request.data.get("data"))
-    names, last_names, birthday, address, gender, academic, motivation, studies, id = data.values()
-    
+        
     try:
-        photo.name = f'{id}.{photo.name.split('.')[-1]}'
-        schedule.name = f'{id}.{schedule.name.split('.')[-1]}'
+        photo.name = f'{data['id']}.{photo.name.split('.')[-1]}'
+        schedule.name = f'{data['id']}.{schedule.name.split('.')[-1]}'
         with transaction.atomic():
-            beca = BecaTrabajo.objects.get(code=str(id))
-            beca.first_name = names
-            beca.last_name = last_names
-            beca.birth_date = birthday.split('T')[0]
-            beca.address = address
-            beca.gender = gender
-            beca.career = academic
+            beca = BecaTrabajo.objects.get(code=str(data['id']))
+            beca.first_name = data['names']
+            beca.last_name = data['last_names']
+            beca.birth_date = data['birthday'].split('T')[0]
+            beca.address = data['address']
+            beca.gender = data['gender']
+            beca.career = data['academic']
             beca.photo = photo
             beca.schedule = schedule
-            beca.motivation = motivation
-            beca.extra_studies  = studies
+            beca.motivation = data['motivation']
+            beca.extra_studies  = data['studies']
             beca.sended_form = True
             beca.save()
         return Response({ "ok": True, 'message': 'Se ha procesado el formulario de manera exitosa.'}, status=200)   
