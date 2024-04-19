@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import Ubication, HourSchedule
 from .consts import SCHEDULE_OFFICE_HOURS
+from authApi.models import Usuario
 class HourScheduleSerializer(serializers.ModelSerializer):
     class Meta:
         model = HourSchedule
@@ -26,3 +27,17 @@ class UbicationSerializer(serializers.ModelSerializer):
         model = Ubication
         fields = ['id', 'name', 'total_becas', 'manager', 'is_schedule_office', 'schedule']
 
+
+class ManagerSerializer(serializers.ModelSerializer):
+
+    fullName = serializers.SerializerMethodField()
+    photo = serializers.SerializerMethodField()
+
+    def get_fullName(self, obj):
+        return f'{obj.first_name} {obj.last_name}'
+
+    def get_photo(self, obj):
+        return None
+    class Meta:
+        model = Usuario
+        fields = ['id', 'fullName', 'photo']

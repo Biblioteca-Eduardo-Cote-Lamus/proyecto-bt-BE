@@ -4,7 +4,8 @@ from rest_framework.decorators import api_view
 from .consts import SCHEDULE_HOURS
 from .models import Ubication, HourSchedule
 from django.db import transaction
-from .serializers import UbicationSerializer
+from .serializers import UbicationSerializer, ManagerSerializer
+from django.contrib.auth import get_user_model
 
 @api_view(['POST'])
 def create_ubication(request):
@@ -39,5 +40,20 @@ def list_ubications(request):
         })
     except Exception as e:
        return Response({"message": str(e)}, status=500)
+
+
+@api_view(['GET'])
+def list_managers(request):
+    try:
+
+        manager_list = ManagerSerializer(
+            get_user_model().objects.filter(rol_id=2), 
+            many=True
+        )
+
+        return Response({"ok": True, "data": manager_list.data}, status=200)
+    
+    except Exception as e:
+        return Response({"message": str(e)}, status=500)
 
 
