@@ -27,3 +27,8 @@ SCHEDULE_OFFICE_HOURS = [
     "16:00-17:00",
     "17:00-18:00",
 ]
+
+SCHEDULE_TYPES = [
+    'Especial',
+    'Oficina'
+]

@@ -20,12 +20,13 @@ class UbicationSerializer(serializers.ModelSerializer):
     
     def get_schedule(self, obj):
         if obj.is_schedule_office:
-           return obj.schedule.filter(tiempo__in=SCHEDULE_OFFICE_HOURS).values_list('tiempo', flat=True)
+        #    return obj.schedule.filter(tiempo__in=SCHEDULE_OFFICE_HOURS).values_list('tiempo', flat=True)
+           return SCHEDULE_OFFICE_HOURS
         return obj.schedule.values_list('tiempo', flat=True)
 
     class Meta:
         model = Ubication
-        fields = ['id', 'name', 'total_becas', 'manager', 'is_schedule_office', 'schedule']
+        fields = ['id', 'name', 'total_becas', 'manager', 'is_schedule_office', 'schedule', 'img', 'description']
 
 
 class ManagerSerializer(serializers.ModelSerializer):
