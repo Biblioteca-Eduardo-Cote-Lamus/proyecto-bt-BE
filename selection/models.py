@@ -25,6 +25,7 @@ class Selection(models.Model):
     selection_start_date = models.DateTimeField(blank=True, null=True)
     selection_end_date = models.DateTimeField(blank=True, null=True)
     active = models.BooleanField(default=False)
+    total_becas = models.IntegerField(default=16, blank=True, null=True)
 
     class Meta:
         db_table = "seleccion"
