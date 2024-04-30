@@ -10,7 +10,9 @@ from django.db import transaction
 from .models import Selection, SelectionState, BecaTrabajo
 from .serializers import SelectionStateSerializer, BecaTrabajoListForm
 from .utils import get_name_and_last_name, make_random_password, left_time
-from authApi.serializers import UserSerializer
+import json
+from .utils.assign_ubication import assign_random_ubication
+from ubications.models import Ubication
 
 
 @api_view(["GET"])
@@ -224,12 +226,18 @@ def check_schedule_file(request):
 
     return Response({"message": "El formato del reporte es el correcto", "ok": True}, status=200)
 
+
+"""Funcion que recibe el formulario de registro del beca.
+
+Returns:
+    Response: respuesta con codigo 200 en caso que se  procese de manera exitosa. En cualquiera otro caso, codigo 400 o 500 si se produce una excepcion.
+"""
 @api_view(["POST"])
 def register_user(request):
     photo = request.FILES.get("photo")
     schedule = request.FILES.get("schedule")
     data = json.loads(request.data.get("data"))
-        
+    # TODO: Leer el horario del beca y designar a que ubicacion enviarlo. 
     try:
         photo.name = f'{data['id']}.{photo.name.split('.')[-1]}'
         schedule.name = f'{data['id']}.{schedule.name.split('.')[-1]}'
@@ -246,7 +254,18 @@ def register_user(request):
             beca.motivation = data['motivation']
             beca.extra_studies  = data['studies']
             beca.sended_form = True
+
+            # generamos el horario
+            random_schedule = assign_random_ubication(beca.schedule)
+            beca.ubication = random_schedule[0] #asignamos la ubicacion. 
+            
+            json_schedule = json.dumps(random_schedule[1], indent=4)
+            # Generamos el horario en formato json.
+            with open(f"media/becas-trabajo/{beca.code}/horario/horario.json", "w") as outfile:
+                outfile.write(json_schedule)
+                
             beca.save()
+
         return Response({ "ok": True, 'message': 'Se ha procesado el formulario de manera exitosa.'}, status=200)   
     except Exception as e:
         print(e.with_traceback())
