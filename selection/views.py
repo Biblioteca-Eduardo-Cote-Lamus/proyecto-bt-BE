@@ -11,7 +11,7 @@ from .models import Selection, SelectionState, BecaTrabajo
 from .serializers import SelectionStateSerializer, BecaTrabajoListForm
 from .utils import get_name_and_last_name, make_random_password, left_time
 import json
-from .utils.assign_ubication import assign_random_ubication
+# from .utils.assign_ubication import assign_random_ubication
 from ubications.models import Ubication
 
 
@@ -255,14 +255,14 @@ def register_user(request):
             beca.extra_studies  = data['studies']
             beca.sended_form = True
 
-            # generamos el horario
-            random_schedule = assign_random_ubication(beca.schedule)
-            beca.ubication = random_schedule[0] #asignamos la ubicacion. 
+            # # generamos el horario
+            # random_schedule = assign_random_ubication(beca.schedule)
+            # beca.ubication = random_schedule[0] #asignamos la ubicacion. 
             
-            json_schedule = json.dumps(random_schedule[1], indent=4)
-            # Generamos el horario en formato json.
-            with open(f"media/becas-trabajo/{beca.code}/horario/horario.json", "w") as outfile:
-                outfile.write(json_schedule)
+            # json_schedule = json.dumps(random_schedule[1], indent=4)
+            # # Generamos el horario en formato json.
+            # with open(f"media/becas-trabajo/{beca.code}/horario/horario.json", "w") as outfile:
+            #     outfile.write(json_schedule)
                 
             beca.save()
 
