@@ -40,8 +40,7 @@ def __verify_keys(schedule):
         return False
     
     # verificamos que todos los elementos del array tenga la estructura correcta
-    if schedule['scheduleType'] in  ['unifiedWithoutSaturday', 'unifiedIncludingSaturday']:  
-        print('unifiedWithoutSaturday')  
+    if schedule['scheduleType'] in  ['unifiedWithoutSaturday', 'unifiedIncludingSaturday', 'custom']:
         # verificamos que el array tenga la estructura correcta
         for day in schedule['schedule']:
             day_keys = day.keys()
@@ -62,6 +61,9 @@ def __verify_keys(schedule):
             # verificar que las horas tenga la estructura correct
             if not __verify_hours_structure(day['hours']):
                 return False
+        
+    else:
+        return False
 
     return True
 
@@ -123,7 +125,7 @@ def __verify_hours_structure(hours):
         if (type(hour['start']) != str) or \
             (type(hour['end']) != str) or \
             (type(hour['valid']) != bool) or \
-            (type(hour['becas']) != int):
+            (type(hour['becas']) != int) and (type(hour['becas']) != list):
             return False
         
         if hour['start'] not in permited_hours or hour['end'] not in permited_hours:

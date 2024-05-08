@@ -9,7 +9,7 @@ from .serializers import UbicationSerializer, ManagerSerializer
 from django.contrib.auth import get_user_model
 from selection.models import Selection
 from django.db.models import Sum
-from .utils.verify_schedule import verify_schedule
+from .utils import schedule_formart, verify_schedule
 from django.conf import settings
 
 @api_view(['POST'])
@@ -72,12 +72,14 @@ def create_ubication(request):
                 total_becas=data['becas'],
                 description=data['description'],
                 img=photo,
-                schedule=f'{settings.MEDIA_ROOT}ubications/{data["ubication"]}/schedule.json'
+                schedule=f'/ubications/{data["ubication"]}/schedule.json'
             )
 
             # guardamos el json del horario
             with open(f'{settings.MEDIA_ROOT}/ubications/{data["ubication"]}/schedule.json', 'w') as file:
-                json.dump(data['schedule'], file)
+                # Generamos la estrucuta correcta del json correspondiente al horario.
+                corret_schedule = schedule_formart(data['schedule'])
+                json.dump(corret_schedule, file)
 
 
         return Response({"message": "Se ha agregado la nueva ubicacion"}, status=200)
