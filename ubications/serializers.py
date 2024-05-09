@@ -1,11 +1,10 @@
 from rest_framework import serializers
-from .models import Ubication, HourSchedule
+from django.conf import settings
+from .models import Ubication
 from .consts import SCHEDULE_OFFICE_HOURS
 from authApi.models import Usuario
-class HourScheduleSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = HourSchedule
-        fields = ['tiempo']
+import json
+
 
 class UbicationSerializer(serializers.ModelSerializer):
     # Define un campo para el nombre del encargado
@@ -19,14 +18,17 @@ class UbicationSerializer(serializers.ModelSerializer):
         return None
     
     def get_schedule(self, obj):
-        if obj.is_schedule_office:
-        #    return obj.schedule.filter(tiempo__in=SCHEDULE_OFFICE_HOURS).values_list('tiempo', flat=True)
-           return SCHEDULE_OFFICE_HOURS
-        return obj.schedule.values_list('tiempo', flat=True)
+        # leer el json correspondiente al horario
+        schedule = obj.schedule #obtengo la ruta del json
+        path = f'{settings.MEDIA_ROOT}/{schedule}'.replace('\\', '/')
+        with open(path) as file:
+            data = json.load(file)
+
+        return data
 
     class Meta:
         model = Ubication
-        fields = ['id', 'name', 'total_becas', 'manager', 'is_schedule_office', 'schedule', 'img', 'description']
+        fields = ['id', 'name', 'total_becas', 'manager',  'schedule', 'img', 'description']
 
 
 class ManagerSerializer(serializers.ModelSerializer):

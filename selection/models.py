@@ -1,5 +1,5 @@
 from django.db import models
-
+from ubications.models import Ubication
 class SelectionState(models.Model):
     state = models.CharField(max_length=100, blank=True, null=True)
 
@@ -45,6 +45,8 @@ class BecaTrabajo(models.Model):
     current_state = models.ForeignKey(
         BecaState, on_delete=models.CASCADE, blank=True, null=True
     )
+
+    ubication = models.ForeignKey(Ubication, on_delete=models.SET_NULL, null=True, blank=True)
 
     def photo_path(instance, filename): 
         # file will be uploaded to MEDIA_ROOT / user_<id>/<filename> 
