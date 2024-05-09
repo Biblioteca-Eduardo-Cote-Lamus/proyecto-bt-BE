@@ -129,9 +129,9 @@ WSGI_APPLICATION = "projectbt.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": environ.get("DB_NAME"),
-        "USER": environ.get("DB_USER"),
-        "PASSWORD": environ.get("DB_PASS"),
+        "NAME": "project-bt",
+        "USER": "pruebasv2",
+        "PASSWORD": "",
         "HOST": "localhost",
         "PORT": "3306",
     }
