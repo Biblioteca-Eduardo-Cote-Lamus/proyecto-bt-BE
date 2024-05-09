@@ -78,7 +78,7 @@ def __verify_available_days(days):
         bool: True si los dias son correctos, False en caso contrario
     """
     for day in days:
-        if day not in ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado']:
+        if day.lower() not in ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado']:
             return False
     return True
 
