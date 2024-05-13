@@ -3,6 +3,8 @@ from django.conf import settings
 from .models import Ubication
 from .consts import SCHEDULE_OFFICE_HOURS
 from authApi.models import Usuario
+from .utils import schedule_formart
+from collections import defaultdict
 import json
 
 
@@ -18,13 +20,10 @@ class UbicationSerializer(serializers.ModelSerializer):
         return None
     
     def get_schedule(self, obj):
-        # leer el json correspondiente al horario
-        schedule = obj.schedule #obtengo la ruta del json
-        path = f'{settings.MEDIA_ROOT}/{schedule}'.replace('\\', '/')
-        with open(path) as file:
-            data = json.load(file)
-
-        return data
+        # Obtener los horarios de la ubicacion y convertirlos en un diccionario con "scheduleType" y "schedule" como keys
+        return obj.schedule_type.name
+        
+        
 
     class Meta:
         model = Ubication

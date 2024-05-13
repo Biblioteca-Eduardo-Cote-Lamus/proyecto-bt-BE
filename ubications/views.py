@@ -1,16 +1,14 @@
 import json
-from django.shortcuts import render
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
-from .consts import SCHEDULE_TYPES
-from .models import Ubication
+from .models import Ubication, ScheduleType, Schedule
 from django.db import transaction
 from .serializers import UbicationSerializer, ManagerSerializer
 from django.contrib.auth import get_user_model
 from selection.models import Selection
 from django.db.models import Sum
-from .utils import schedule_formart, verify_schedule
-from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
+from .utils import verify_schedule, schedule_formart
 
 @api_view(['POST'])
 def create_ubication(request):
@@ -65,29 +63,54 @@ def create_ubication(request):
         
         # Si todo sale bien Creamos una transaccion para asegurarnos que si algo falla, no se cree la ubicacion
         with transaction.atomic():
-            # Guardamos el json correspondiente al horario de la ubicacion.
-            Ubication.objects.create(
+
+            ubication = Ubication(
                 name=data['ubication'],
                 manager_id=data['manager'],
                 total_becas=data['becas'],
                 description=data['description'],
                 img=photo,
-                schedule=f'/ubications/{data["ubication"]}/schedule.json'
+                schedule_type=ScheduleType.objects.get(name=data['schedule']['scheduleType'])
             )
 
-            # guardamos el json del horario
-            with open(f'{settings.MEDIA_ROOT}/ubications/{data["ubication"]}/schedule.json', 'w') as file:
-                # Generamos la estrucuta correcta del json correspondiente al horario.
-                corret_schedule = schedule_formart(data['schedule'])
-                json.dump(corret_schedule, file)
+            ubication.save()
+
+            # Creamos el horario de la ubicacion
+            for scheduledata in data['schedule']['schedule']:
+                for schedule_range in scheduledata['hours']:
+                    scheduleObj = Schedule(
+                        ubication=ubication,
+                        days=', '.join(scheduledata['days']),
+                    )
+
+                    scheduleObj.start_hour = schedule_range['start']
+                    scheduleObj.end_hour = schedule_range['end']
+                
+                    if isinstance(schedule_range['becas'], list):
+                        scheduleObj.becas_json = schedule_range['becas']
+            
+                    if isinstance(schedule_range['becas'], int):
+                        scheduleObj.total_becas = schedule_range['becas']
+
+                    scheduleObj.save()
 
 
         return Response({"message": "Se ha agregado la nueva ubicacion"}, status=200)
     except Exception as e:
+        e.with_traceback()
         return Response({"message": "Ha ocurrido un error inesperado. Si el problema persiste, comuniquese con soporte.", "error": str(e)}, status=500)
     
+
 @api_view(['PATCH'])
 def update_ubication(request):
+    """Vista para actualizar una ubicacion
+
+    Args:
+        request: request con los datos de la ubicacion
+
+    Returns:
+        Reponse: Respuesta con el mensaje de exito o error 
+    """
     try:
         data = json.loads(request.data['ubication'])
         photo = request.FILES.get('photo')
@@ -115,21 +138,27 @@ def update_ubication(request):
 
 
     except Exception as e:
+        e.with_traceback()
         return Response({"message": str(e), "ok": False}, status=500)
     
 @api_view(['GET'])
 def list_ubications(request): 
+    """
+        Vista para listar todas las ubicaciones existentes en el sistema
+    """
     try:
         response = UbicationSerializer(Ubication.objects.all(), many=True)
         return Response({
             "ubications": response.data
         })
     except Exception as e:
+       e.with_traceback()
        return Response({"message": str(e)}, status=500)
 
 
 @api_view(['GET'])
 def list_managers(request):
+    """Vista para listar todos los encargados registrados en el sistema"""
     try:
 
         manager_list = ManagerSerializer(
@@ -143,13 +172,12 @@ def list_managers(request):
         return Response({"message": str(e)}, status=500)
     
 
+@api_view(['GET'])
+def check_total_becas(request):
     """
         Verifica al momento de estar creando o modificando la cantidad de becas asignadas a una ubicacion 
         si es posible tomar ese valor o no
     """
-
-@api_view(['GET'])
-def check_total_becas(request):
     try:
         # obtenga el total que se asignara desde el cliente
         client_query = str(request.query_params.get('amount', None))
@@ -197,5 +225,62 @@ def check_total_becas(request):
             "ok": False
         }, status=500)
     
-    
+
+@api_view(['GET'])
+def get_schedule_by_ubication(request):
+    """_summary_
+
+    Args:
+        request (_type_): _description_
+    """
+    # controlar la excepcion en caso de que no se encuentre la ubicacion
+    try:
+        ubication_id = request.query_params.get('id', None)
+
+        if ubication_id is None:
+            return Response({
+                "message": "El parametro id es obligatorio"
+            }, status=400)
+
+        ubication = Ubication.objects.get(id=ubication_id)
+
+        schedules_by_days = {}
+        # agrupamos los horarios por dia
+        for schedule in ubication.schedules.values('start_hour', 'end_hour', 'total_becas', 'becas_json', 'days'):
+            if schedule['days'] not in schedules_by_days:
+                schedules_by_days[schedule['days']] = []
+                schedules_by_days[schedule['days']].append(schedule)
+            else:
+                schedules_by_days[schedule['days']].append(schedule)
+
+        scheduleObj = {
+            "scheduleType": ubication.schedule_type.name,
+            "schedule": [
+                {
+                    "days": day.split(', '),
+                    "hours": [
+                        {
+                            "start": schedule['start_hour'],
+                            "end": schedule['end_hour'],
+                            "becas": schedule['total_becas'] if schedule['becas_json'] is None else schedule['becas_json']
+                        } for schedule in schedules
+                    ]
+                } for day, schedules in schedules_by_days.items()
+            ],
+        }
+        hours_between = schedule_formart(scheduleObj)
+        scheduleObj['schedule_format'] = hours_between
+
+        return Response({
+            "schedule": scheduleObj
+        }, status=200)
+
+    except ObjectDoesNotExist:
+        return Response({
+            "message": "La ubicacion no existe"
+        }, status=404)
+    except Exception as e:
+        return Response({
+            "message": str(e)
+        }, status=500)
 

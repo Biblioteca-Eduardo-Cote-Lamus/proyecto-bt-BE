@@ -32,11 +32,7 @@ def schedule_formart(schedule):
             schedule (dict): Diccionario con la informacion del tipo de horario y la los horarios por dia
                             { scheduleType: str, schedule: list}
     """
-    return {
-        "scheduleType": schedule['scheduleType'],
-        "schedule": schedule['schedule'],
-        "schedule_format": list( map(__schedule_obj, schedule['schedule']) )
-    }
+    return  list( map(__schedule_obj, schedule['schedule']) )
 
 def __schedule_obj(schedule):
     """
