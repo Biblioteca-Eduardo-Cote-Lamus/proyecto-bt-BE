@@ -1,0 +1,23 @@
+[
+    {
+        "model": "ubications.ScheduleType",
+        "pk": 1,
+        "fields": {
+            "name": "unifiedWithoutSaturday"
+        }
+    },
+    {
+        "model": "ubications.ScheduleType",
+        "pk": 2,
+        "fields": {
+            "name": "unifiedIncludingSaturday"
+        }
+    },
+    {
+        "model": "ubications.ScheduleType",
+        "pk": 3,
+        "fields": {
+            "name": "custom"
+        }
+    }
+]
