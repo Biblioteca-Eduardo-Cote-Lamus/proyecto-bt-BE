@@ -1,14 +1,14 @@
 import json
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
-from .models import Ubication, ScheduleType, Schedule
+from .models import Ubication, ScheduleType, Schedule, ScheduleFormat
 from django.db import transaction
 from .serializers import UbicationSerializer, ManagerSerializer
 from django.contrib.auth import get_user_model
 from selection.models import Selection
 from django.db.models import Sum
 from django.core.exceptions import ObjectDoesNotExist
-from .utils import verify_schedule, schedule_formart
+from .utils import verify_schedule, schedule_formart, generate_schedule_format
 
 @api_view(['POST'])
 def create_ubication(request):
@@ -93,6 +93,13 @@ def create_ubication(request):
                         scheduleObj.total_becas = schedule_range['becas']
 
                     scheduleObj.save()
+            
+            # generamos y guardamos el formato del horario
+            ScheduleFormat.objects.create(
+                ubication=ubication,
+                schedule=generate_schedule_format(ubication)
+            ).save()
+
 
 
         return Response({"message": "Se ha agregado la nueva ubicacion"}, status=200)
@@ -225,62 +232,3 @@ def check_total_becas(request):
             "ok": False
         }, status=500)
     
-
-@api_view(['GET'])
-def get_schedule_by_ubication(request):
-    """_summary_
-
-    Args:
-        request (_type_): _description_
-    """
-    # controlar la excepcion en caso de que no se encuentre la ubicacion
-    try:
-        ubication_id = request.query_params.get('id', None)
-
-        if ubication_id is None:
-            return Response({
-                "message": "El parametro id es obligatorio"
-            }, status=400)
-
-        ubication = Ubication.objects.get(id=ubication_id)
-
-        schedules_by_days = {}
-        # agrupamos los horarios por dia
-        for schedule in ubication.schedules.values('start_hour', 'end_hour', 'total_becas', 'becas_json', 'days'):
-            if schedule['days'] not in schedules_by_days:
-                schedules_by_days[schedule['days']] = []
-                schedules_by_days[schedule['days']].append(schedule)
-            else:
-                schedules_by_days[schedule['days']].append(schedule)
-
-        scheduleObj = {
-            "scheduleType": ubication.schedule_type.name,
-            "schedule": [
-                {
-                    "days": day.split(', '),
-                    "hours": [
-                        {
-                            "start": schedule['start_hour'],
-                            "end": schedule['end_hour'],
-                            "becas": schedule['total_becas'] if schedule['becas_json'] is None else schedule['becas_json']
-                        } for schedule in schedules
-                    ]
-                } for day, schedules in schedules_by_days.items()
-            ],
-        }
-        hours_between = schedule_formart(scheduleObj)
-        scheduleObj['schedule_format'] = hours_between
-
-        return Response({
-            "schedule": scheduleObj
-        }, status=200)
-
-    except ObjectDoesNotExist:
-        return Response({
-            "message": "La ubicacion no existe"
-        }, status=404)
-    except Exception as e:
-        return Response({
-            "message": str(e)
-        }, status=500)
-

@@ -60,3 +60,10 @@ class AssignationBecas(models.Model):
         db_table = 'asignaciones_de_becas'
         # Se define que la combinacion de beca y horario debe ser unica
         unique_together = ('beca', 'schedule')
+
+class ScheduleFormat(models.Model):
+    schedule = models.JSONField(blank=False, null=False)
+    ubication = models.OneToOneField(Ubication, on_delete=models.SET_NULL, related_name='schedule_format', null=True, blank=True)
+
+    class Meta:
+        db_table = 'formato_de_horarios'

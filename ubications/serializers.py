@@ -21,7 +21,7 @@ class UbicationSerializer(serializers.ModelSerializer):
     
     def get_schedule(self, obj):
         # Obtener los horarios de la ubicacion y convertirlos en un diccionario con "scheduleType" y "schedule" como keys
-        return obj.schedule_type.name
+        return obj.schedule_format.schedule
         
         
 
