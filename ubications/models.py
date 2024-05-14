@@ -24,7 +24,7 @@ class Ubication(models.Model):
     # Imagen de la ubicacion para reconocerla 
     img = models.ImageField(upload_to=photo_path, blank=True, null=True)
     # Tipo de horario que se maneja en la ubicacion (Valores: Unificado exluyendo sabado, unificado incluyendo sabado, personalizado)
-    schedule_type = models.OneToOneField(ScheduleType, on_delete=models.SET_NULL, null=True)
+    schedule_type = models.ForeignKey(ScheduleType, on_delete=models.SET_NULL, null=True)
         
     class Meta:
         db_table = 'ubicaciones'

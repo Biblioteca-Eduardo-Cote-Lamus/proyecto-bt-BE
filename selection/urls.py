@@ -10,7 +10,8 @@ from .views import (
     register_user,
     get_beca_current_state,
     extend_register_form_date,
-    confirm_list_step2
+    confirm_list_step2,
+    ubication_assign
 )
 
 urlpatterns = [
@@ -25,4 +26,5 @@ urlpatterns = [
     path( "check-current-state-beca/<int:id>", get_beca_current_state, name="Return the current beca state",),
     path( "extended-date-form", extend_register_form_date, name="Extended date of register form",),
     path( "confirm-register-form", confirm_list_step2, name="Update the current state selection and the current state of becas",),
+    path( "ubication-assign", ubication_assign, name="Test the ubication assign",),
 ]

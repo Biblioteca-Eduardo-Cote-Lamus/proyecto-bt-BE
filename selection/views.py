@@ -11,7 +11,7 @@ from .models import Selection, SelectionState, BecaTrabajo
 from .serializers import SelectionStateSerializer, BecaTrabajoListForm
 from .utils import get_name_and_last_name, make_random_password, left_time
 import json
-# from .utils.assign_ubication import assign_random_ubication
+from .utils.assign_ubication import assign_random_ubication
 from ubications.models import Ubication
 
 
@@ -303,3 +303,8 @@ def confirm_list_step2(request):
         return Response({'ok': False, 'msg': str(e)}, status=500)
 
     
+@api_view(['GET'])
+def ubication_assign(request):
+    beca = BecaTrabajo.objects.get(pk='1152069')
+    random_schedule = assign_random_ubication(beca.schedule)
+    return Response({'ok': True, "data": random_schedule[0]}, status=200)
