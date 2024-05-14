@@ -87,7 +87,6 @@ def __free_schedule_hours(schedule):
     return (free_hours, free_schedule_by_day)
 
 
-
 def assign_random_ubication(schedule):
     """
         Utilidad que determina la ubicacion a asignar al beca.
@@ -95,44 +94,51 @@ def assign_random_ubication(schedule):
         schedule (File): Corresponde al horario en formato pdf del beca.
     """
 
-    #Algoritmo
-    # Seleccione una ubicacion de manera aleatoria
-    # Determine las horas de disponibilidad del beca para cada dia de la semana 
-    # Lea el json correspondiente al horario de la ubicacion y extraiga sus datos relevantes
-    # Determine si el beca cumple con el horario de la ubicacion, en tal caso, sera preseleccionado 
-    # Si cumple con al menos el 60 o 70% de la disponibilidad de horas, dejelo como un candidato a dicha ubicacion 
-
     # Determine las horas de disponibilidad del beca para cada dia de la semana entre las 6AM y 8PM 
     free_hours = __free_schedule_hours(schedule) 
-
 
     # gurdamos las ubicaciones ya comprobadas
     checked_ubication = set()
 
+    # obtenemos todas las ubicaciones
+    allubications = Ubication.objects.all()
 
+    # En tal caso de si en la ubicacion que se escogio, no cumpla con ninguno de los horarios, se seguira buscando
     while len(checked_ubication) != Ubication.objects.count():
-         # Seleccione una ubicacion de manera aleatoria
-        ubication = random.choice(Ubication.objects.all())
+        # Seleccione una ubicacion de manera aleatoria
+        ubication = random.choice(allubications)
+
         # verficamos si la ubicacion ya fue comprobada
         if ubication.id in checked_ubication:
             continue
         
         checked_ubication.add(ubication.id)
 
-        beca_schedule_info = can_beca_assign_in_ubication(schedule=ubication.schedule_format.schedule,student_schedule=free_hours[1])
+        
+        if ubication.schedule_type.name == __schedule_types['unifiedWithoutSaturday'] or ubication.schedule_type.name == __schedule_types['unifiedIncludingSaturday']:
+            beca_schedule_info = assign_in_unified_schedule(
+                schedule=ubication.schedule_format.schedule,
+                student_schedule=free_hours[1]
+            )
+
+        if ubication.schedule_type.name == __schedule_types['custom']:
+            pass
 
         # Si el beca cumple con al menos un horario de la ubicacion, entonces se preselecciona y se finaliza el proceso, en caso contrario, se sigue buscando
         if isinstance(beca_schedule_info, dict):
             # liberamos todos los recursos usados
             del checked_ubication
             del free_hours
+
             return beca_schedule_info, ubication
+        
+    # liberamos todos los recursos usados 
     del checked_ubication
     del free_hours
     return None, None
 
-
-def can_beca_assign_in_ubication(*,schedule, student_schedule):
+#  Funcion que determina si el estudiante cumple con el horario de la ubicacion si el tipo de horario es de unificado
+def assign_in_unified_schedule(*,schedule, student_schedule):
     """
     Funcion que determina si el estudiante cumple con el horario de la ubicacion.
 
@@ -173,21 +179,16 @@ def can_beca_assign_in_ubication(*,schedule, student_schedule):
             hora = schedule_data[index]['hours'][index_hour]
 
             start, end = hora['start'], hora['end']
-            # generamos el subschedule list para hacer la comprobacion si el estudiante cubre todas esas horas cada dia 
 
             if  'sabado' not in schedule_data[index]['days'] and len(schedule_data[index]['days']) == 5: 
-                subschedule = __get_sub_schedule_list(start=start, end=end, schedule_format=schedule['scheduleFormat'], index=index)
-                schedule_student_data = __verify_schedule_student(subschedule=subschedule, 
-                                                                  schedule_s= list(student_schedule.values())[0:-1], 
-                                                                  total_days=len(schedule_data[index]['days']))
+                schedule_student = list(student_schedule.values())[0:-1]
             elif 'sabado' in schedule_data[index]['days'] and len(schedule_data[index]['days']) == 6:
-                subschedule = __get_sub_schedule_list(start=start, end=end, schedule_format=schedule['scheduleFormat'], index=index)
-                schedule_student_data = __verify_schedule_student(subschedule=subschedule, 
-                                                                  schedule_s= list(student_schedule.values()), 
-                                                                  total_days=len(schedule_data[index]['days']))
+                schedule_student = list(student_schedule.values())
             else:
-                schedule_student_data = __verify_schedule_student(subschedule=schedule['scheduleFormat'][index], 
-                                                                  schedule_s= [list(student_schedule.values())[-1]], 
+                schedule_student = list(student_schedule.values())[-1]
+            
+            schedule_student_data = __verify_schedule_student(subschedule=schedule['scheduleFormat2'][index][index_hour], 
+                                                                  schedule_s=schedule_student, 
                                                                   total_days=len(schedule_data[index]['days']))
 
 
@@ -207,6 +208,120 @@ def can_beca_assign_in_ubication(*,schedule, student_schedule):
         'days_cumpliment': []
     }
 
+
+def assign_custom_ubication(*, schedule, student_schedule):
+
+    def get_index_day(day):
+        if day == 'lunes':
+            return 0
+        if day == 'martes':
+            return 1
+        if day == 'miercoles':
+            return 2
+        if day == 'jueves':
+            return 3
+        if day == 'viernes':
+            return 4
+        if day == 'sabado':
+            return 5
+
+    # lo primero es obtener los horarios asignado al beca 
+    schedulebybeca = get_schedule_by_beca(schedule=schedule['schedule'])
+
+    selected_becas = set()
+
+    becas_keys = list(schedulebybeca.keys())
+
+    while len(selected_becas) != len(becas_keys):
+        # Seleccionamos alguna key (beca) de manera aleatoria
+        random_beca = random.choice(becas_keys)
+
+        # del horario de estudiante, extraemos solo los dias que tiene asignado el beca
+        indexes_days = [get_index_day(day[0]) for day in schedulebybeca[random_beca]['days']] 
+        subschedulestudent = [ list(student_schedule.values())[index] for index in indexes_days ]
+
+
+
+        pass
+
+    pass
+
+def get_schedule_by_beca(*, schedule):
+    """Funcion que obtiene los horarios asignados a cada beca.
+
+    Args:
+        schedule (dict): Horario de la ubicacion. Se obtiene del modelo ScheduleFormat
+
+    Returns:
+        dict: Un diccionario con llaves el nombre del beca (beca 1, beca 2, etc) y como valor un diccionario con la informacion de los dias y horas asignadas al  beca.
+        Ejemplo:
+                {
+                   ...,
+                    "Beca 1": {
+                        "hours": [
+                            {
+                                "start": "08:00 AM",
+                                "end": "12:00 PM"
+                            },
+                            {
+                                "start": "08:00 AM",
+                                "end": "10:00 AM"
+                            },
+                            {
+                                "start": "08:00 AM",
+                                "end": "12:00 PM"
+                            }
+                        ],
+                        "days": [
+                            [
+                                "miercoles",
+                                0,
+                                1
+                            ],
+                            [
+                                "martes",
+                                1,
+                                0
+                            ],
+                            [
+                                "lunes",
+                                3,
+                                0
+                            ]
+                        ]
+                    }
+                }
+        En la seccion de dias, vienen dos numeros, el primero indica el dia de la semana y el segundo la hora de inicio de la franja horaria. Esto es para buscar en el scheduleFormat2 los horarios de manera mas directa.
+    """
+    # Diccionario para almacenar las horas asignadas a cada beca
+    horarios_por_beca = {}
+
+    # Itera sobre cada entrada en el horario
+    for i, entry in enumerate(schedule):
+        for j, hour_entry in enumerate(entry["hours"]):
+            for beca in hour_entry["becas"]:
+                beca_name = beca["name"]
+                # Agrega la hora al diccionario, agrupándola por nombre de beca
+                if beca_name in horarios_por_beca:
+                    if entry["days"][0] not in horarios_por_beca[beca_name]['days'][0]:
+                        horarios_por_beca[beca_name]['days'].append((entry["days"][0],i,j))
+                    horarios_por_beca[beca_name]['hours'].append({
+                        "start": hour_entry["start"],
+                        "end": hour_entry["end"],
+                    
+                    })
+                else:
+                    horarios_por_beca[beca_name] = {
+                            "hours": [
+                                {
+                                    "start": hour_entry["start"],
+                                    "end": hour_entry["end"]
+                                }
+                            ],
+                            "days": [(entry["days"][0],i,j)],
+                        }
+
+    return horarios_por_beca
 
 def __verify_schedule_student(*, subschedule, schedule_s, total_days=0):
     """Funcion encargada de verificar si el estudiante cumple con el horario de la ubicacion para cada dia de la semana.
@@ -234,34 +349,3 @@ def __verify_schedule_student(*, subschedule, schedule_s, total_days=0):
         'total_days_can': total_days_can,
         'days_cumpliment': result
     }
-
-def __get_sub_schedule_list(*, start, end, schedule_format, index):
-    """Funcion que genera una sublista de un horario de la ubicacion.
-
-    Args:
-        start (str)): Hora de inicio de la sublista
-        end (str): Hora de finalizacion de la sublista
-        schedule_format (list<str>): Horario de la ubicacion por cada dia de la semana
-        index (int): Indice del horario de la ubicacion
-
-    Returns:
-        list: Sublista del horario de la ubicacion
-    """
-    if 'PM' in start and not start.startswith('12'):
-        start = str(int(start.split(':')[0]) + 12) + ':00'
-    else :
-        start = start.split(':')[0] + ':00'
-
-    if 'PM' in end and not end.startswith('12'):
-        end = str(int(end.split(':')[0]) + 12) + ':00'
-    else :
-        end = end.split(':')[0] + ':00'
-        
-    # encontramos el indice donde empieza y termina las horas 
-    start_index = schedule_format[index].index( next( h for h in  schedule_format[index] if h.startswith(start) )) 
-    end_index = schedule_format[index].index( next( h for h in  schedule_format[index] if h.endswith(end) )) 
-
-    # generamos el slice 
-    if start_index > end_index:
-        return schedule_format[index][ end_index :  start_index ]
-    return schedule_format[index][ start_index : end_index ]

@@ -305,6 +305,7 @@ def confirm_list_step2(request):
     
 @api_view(['GET'])
 def ubication_assign(request):
-    beca = BecaTrabajo.objects.get(pk='1152069')
+    beca = BecaTrabajo.objects.get(pk='1151875')
     random_schedule = assign_random_ubication(beca.schedule)
+    print(random_schedule[1].name)
     return Response({'ok': True, "data": random_schedule[0]}, status=200)
