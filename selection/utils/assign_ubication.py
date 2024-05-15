@@ -1,9 +1,7 @@
 from   ubications.models import Ubication
-from django.conf import settings
 import random 
 import tabula as tb
 import numpy as np
-
 
 __schedule_types = {
     "unifiedWithoutSaturday": 'unifiedWithoutSaturday',
@@ -12,8 +10,7 @@ __schedule_types = {
 
 }
 
-
-def __free_schedule_hours(schedule):
+def free_schedule_hours(schedule):
     """
         Funcion que determina el horario a asginar la beca si el tipo de horario es de oficina
 
@@ -86,7 +83,6 @@ def __free_schedule_hours(schedule):
 
     return (free_hours, free_schedule_by_day)
 
-
 def assign_random_ubication(schedule):
     """
         Utilidad que determina la ubicacion a asignar al beca.
@@ -95,7 +91,7 @@ def assign_random_ubication(schedule):
     """
 
     # Determine las horas de disponibilidad del beca para cada dia de la semana entre las 6AM y 8PM 
-    free_hours = __free_schedule_hours(schedule) 
+    free_hours = free_schedule_hours(schedule) 
 
     # gurdamos las ubicaciones ya comprobadas
     checked_ubication = set()
@@ -122,22 +118,27 @@ def assign_random_ubication(schedule):
             )
 
         if ubication.schedule_type.name == __schedule_types['custom']:
-            pass
+            beca_schedule_info = assign_custom_ubication(
+                schedule=ubication.schedule_format.schedule,
+                student_schedule=free_hours[1]
+            )
 
         # Si el beca cumple con al menos un horario de la ubicacion, entonces se preselecciona y se finaliza el proceso, en caso contrario, se sigue buscando
         if isinstance(beca_schedule_info, dict):
             # liberamos todos los recursos usados
             del checked_ubication
             del free_hours
+            del allubications
 
             return beca_schedule_info, ubication
         
     # liberamos todos los recursos usados 
     del checked_ubication
     del free_hours
+    del allubications
+
     return None, None
 
-#  Funcion que determina si el estudiante cumple con el horario de la ubicacion si el tipo de horario es de unificado
 def assign_in_unified_schedule(*,schedule, student_schedule):
     """
     Funcion que determina si el estudiante cumple con el horario de la ubicacion.
@@ -192,7 +193,7 @@ def assign_in_unified_schedule(*,schedule, student_schedule):
                                                                   total_days=len(schedule_data[index]['days']))
 
 
-            if schedule_student_data['preslected'] or schedule_student_data['days_percentage'] >= 60:
+            if (schedule_student_data['porcentajeDiasCubierto']  >= 60) or (schedule_student_data['preseleccionado']) or (schedule_student_data['porcentajeHorasCubiertas'] >= 60):
                 schedule_student_data['schedule_info'] = {"start": start, "end": end} 
                 # liberamos todos los recursos usados 
                 del selected_schedule
@@ -207,7 +208,6 @@ def assign_in_unified_schedule(*,schedule, student_schedule):
         'total_days_can': 0,
         'days_cumpliment': []
     }
-
 
 def assign_custom_ubication(*, schedule, student_schedule):
 
@@ -236,15 +236,61 @@ def assign_custom_ubication(*, schedule, student_schedule):
         # Seleccionamos alguna key (beca) de manera aleatoria
         random_beca = random.choice(becas_keys)
 
+        if random_beca in selected_becas:
+            continue
+
+        selected_becas.add(random_beca)
+
         # del horario de estudiante, extraemos solo los dias que tiene asignado el beca
         indexes_days = [get_index_day(day[0]) for day in schedulebybeca[random_beca]['days']] 
         subschedulestudent = [ list(student_schedule.values())[index] for index in indexes_days ]
+        result = []
+        total_days_can = 0
+        total_hours_can = 0
+        total_hours = 0
+        # verificamos si el estudiante cumple con el horario del beca
+        for i,scheduleday in enumerate(schedulebybeca[random_beca]['days']):
+            # obtendremoes un array de booleanos, donde True indica si dicha hora esta en el horario del beca
+            hours_can =  np.in1d( schedule['scheduleFormat2'][scheduleday[1]][scheduleday[2]],  subschedulestudent[i])
+            result.append(
+                {
+                    "dia": scheduleday[0],
+                    "todasHorasCubiertas": np.all(hours_can),
+                    "horasCubiertas": [ hour for hour, can in zip(schedule['scheduleFormat2'][scheduleday[1]][scheduleday[2]], hours_can) if can ],
+                    "horasARealizar": schedule['scheduleFormat2'][scheduleday[1]][scheduleday[2]],
+                    "porcentajeHorasCubiertas": (np.count_nonzero(hours_can)*100)/len(hours_can),
+                }
+            )
+            total_days_can += np.count_nonzero(result[-1]['todasHorasCubiertas'])
+            total_hours_can += np.count_nonzero(hours_can)
+            total_hours += len(schedule['scheduleFormat2'][scheduleday[1]][scheduleday[2]])
 
-
-
-        pass
-
-    pass
+        if (total_hours_can*100)/total_hours >= 60:
+            return {
+                'porcentajeDiasCubierto': (total_days_can*100)/len(schedulebybeca[random_beca]['days']),
+                'preseleccionado': np.all([res['todasHorasCubiertas'] for res in result]),
+                'totalDiasFull': total_days_can,
+                'diasCubiertos': [day['dia'] for day in result if day['todasHorasCubiertas']],
+                'informacionPorDia': result,
+                'totalHorasACubrir': total_hours,
+                'totalHorasCubiertas': total_hours_can,
+                'porcentajeHorasCubiertas': (total_hours_can*100)/total_hours,
+                'puesto': random_beca,
+            }
+        
+            
+    return {
+        'porcentajeDiasCubierto': (total_days_can*100)/len(schedulebybeca[random_beca]['days']),
+        'preseleccionado': np.all([res['todasHorasCubiertas'] for res in result]),
+        'totalDiasFull': total_days_can,
+        'diasCubiertos': [day['dia'] for day in result],
+        'informacionPorDia': result,
+        'totalHorasACubrir': total_hours,
+        'totalHorasCubiertas': total_hours_can,
+        'porcentajeHorasCubiertas': (total_hours_can*100)/total_hours,
+        'asignacion': random_beca,
+        'vueltas': len(selected_becas)
+    }
 
 def get_schedule_by_beca(*, schedule):
     """Funcion que obtiene los horarios asignados a cada beca.
@@ -337,15 +383,42 @@ def __verify_schedule_student(*, subschedule, schedule_s, total_days=0):
         'preslected': True si el estudiante cumple con todas las horas de la ubicacion, False en caso contrario
         'total_days_can': Total de dias que el estudiante cumple con el horario de la ubicacion,
         'days_cumpliment': Lista de booleanos que indica si el estudiante cumple con el horario de la ubicacion para cada dia de la semana.
+
+         result.append(
+                {
+                    "dia": scheduleday[0],
+                    "todasHorasCubiertas": np.all(hours_can),
+                    "horasCubiertas": [ hour for hour, can in zip(schedule['scheduleFormat2'][scheduleday[1]][scheduleday[2]], hours_can) if can ],
+                    "horasARealizar": schedule['scheduleFormat2'][scheduleday[1]][scheduleday[2]],
+                    "porcentajeHorasCubiertas": (np.count_nonzero(hours_can)*100)/len(hours_can),
+                }
+            )
     """
+
     result = []
+    days = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado']
     total_days_can = 0
-    for scheduleday in schedule_s:
-        result.append(np.all(np.in1d(subschedule, scheduleday)))
-        total_days_can += np.count_nonzero(result[-1])
-    return {
-        'days_percentage': (total_days_can*100)/total_days,
-        'preslected': np.all(result),
-        'total_days_can': total_days_can,
-        'days_cumpliment': result
+    total_hours_can = 0
+
+    for index, scheduleday in enumerate(schedule_s):
+        hours_can =  np.in1d(subschedule,  scheduleday)
+        result.append({
+            "dia": days[index] if total_days > 1  else days[-1],
+            "todasHorasCubiertas": np.all(hours_can),
+            "horasCubiertas": [ hour for hour, can in zip(subschedule, hours_can) if can ],
+            "horasARealizar": subschedule,
+            "porcentajeHorasCubiertas": (np.count_nonzero(hours_can)*100)/len(subschedule),
+        })
+        total_days_can += np.count_nonzero(result[-1]['todasHorasCubiertas'])
+        total_hours_can += np.count_nonzero(hours_can)
+    
+    return  {
+        'porcentajeDiasCubierto': (total_days_can*100)/len(schedule_s),
+        'preseleccionado': np.all([res['todasHorasCubiertas'] for res in result]),
+        'totalDiasFull': total_days_can,
+        'diasCubiertos': [day['dia'] for day in result if day['todasHorasCubiertas']],
+        'informacionPorDia': result,
+        'totalHorasACubrir': len(subschedule)*len(schedule_s),
+        'totalHorasCubiertas': total_hours_can,
+        'porcentajeHorasCubiertas': (total_hours_can*100)/(len(subschedule)*len(schedule_s)),
     }

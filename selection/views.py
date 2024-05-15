@@ -11,8 +11,9 @@ from .models import Selection, SelectionState, BecaTrabajo
 from .serializers import SelectionStateSerializer, BecaTrabajoListForm
 from .utils import get_name_and_last_name, make_random_password, left_time
 import json
-from .utils.assign_ubication import assign_random_ubication
+from .utils.assign_ubication import assign_random_ubication, assign_custom_ubication, free_schedule_hours, assign_in_unified_schedule
 from ubications.models import Ubication
+import random
 
 
 @api_view(["GET"])
@@ -306,6 +307,12 @@ def confirm_list_step2(request):
 @api_view(['GET'])
 def ubication_assign(request):
     beca = BecaTrabajo.objects.get(pk='1151875')
-    random_schedule = assign_random_ubication(beca.schedule)
-    print(random_schedule[1].name)
-    return Response({'ok': True, "data": random_schedule[0]}, status=200)
+
+    random_selection = assign_random_ubication(beca.schedule)
+    
+    random_selection[0]['ubication'] ={
+        "nombre": random_selection[1].name,
+        "tipoHorario": random_selection[1].schedule_type.name,
+    }
+
+    return Response({'ok': True, "data": random_selection[0]}, status=200)
