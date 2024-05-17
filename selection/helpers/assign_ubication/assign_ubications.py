@@ -11,24 +11,24 @@ class AssignStatistics:
         """
             Clase que tipa la informacion por dia que existe en el horario de la ubicacion.
         """
-        dia: str
-        todasHorasCubiertas: bool
-        horasCubiertas: list[str]
-        horasARealizar: list[str]
-        porcentajeHorasCubiertas: float
+        day: str  # Almacena el día de la semana.
+        allHoursCovered: bool  # Almacena si todas las horas están cubiertas en el día.
+        coveredHours: list[str]  # Almacena las horas cubiertas en el día.
+        hoursToPerform: list[str]  # Almacena las horas a realizar en el día.
+        percentageHoursCovered: float  # Almacena el porcentaje de horas cubiertas en el día.
 
     class AssignStatisticsResponse(TypedDict):
         """
             Clase que tipa la informacion de la asignacion del beca en la ubicacion seleccionada.
         """
-        porcentajeDiasCubierto: float
-        preseleccionado: bool
-        totalDiasFull: int
-        diasCubiertos: list[str]
-        informacionPorDia: 'AssignStatistics.InfoDay'
-        totalHorasACubrir: int
-        totalHorasCubiertas: int
-        porcentajeHorasCubiertas: float
+        percentageDaysCovered: float  # Almacena el porcentaje de días cubiertos al 100%
+        preselected: bool  # Almacena si está preseleccionado.
+        totalFullDays: int  # Almacena el total de días completos.
+        coveredDays: list[str]  # Almacena los días cubiertos.
+        infoPerDay: 'AssignStatistics.InfoDay'  # Almacena la información por día.
+        totalHoursToCover: int  # Almacena el total de horas a cubrir.
+        totalHoursCovered: int  # Almacena el total de horas cubiertas.
+        percentageHoursCovered: float  # Almacena el porcentaje de horas cubiertas.
 
     @staticmethod
     def get_statistics(*, subschedules, schedule_student, days, is_custom = False):    
@@ -58,27 +58,28 @@ class AssignStatistics:
 
             result.append(
                 AssignStatistics.InfoDay(
-                    dia=days[index],
-                    todasHorasCubiertas=np.all(hours_can),
-                    horasCubiertas=[ hour for hour, can in zip(subschedule, hours_can) if can ],
-                    horasARealizar=subschedule,
-                    porcentajeHorasCubiertas=(np.count_nonzero(hours_can)*100)/len(subschedule)
+                    day=days[index],
+                    allHoursCovered=np.all(hours_can),
+                    coveredHours=[ hour for hour, can in zip(subschedule, hours_can) if can ],
+                    hoursToPerform=subschedule,
+                    percentageHoursCovered=(np.count_nonzero(hours_can)*100)/len(subschedule)
                 )
             )
-            total_days_can += np.count_nonzero(result[-1]['todasHorasCubiertas'])
+            total_days_can += np.count_nonzero(result[-1]['allHoursCovered'])
             total_hours_can += np.count_nonzero(hours_can)
             total_hours += len(subschedule)
             
         return  AssignStatistics.AssignStatisticsResponse(
-            porcentajeDiasCubierto=(total_days_can*100)/len(days),
-            preseleccionado=np.all([res['todasHorasCubiertas'] for res in result]),
-            totalDiasFull=total_days_can,
-            diasCubiertos=[day['dia'] for day in result if day['todasHorasCubiertas']],
-            informacionPorDia=result,
-            totalHorasACubrir=total_hours,
-            totalHorasCubiertas=total_hours_can,
-            porcentajeHorasCubiertas=(total_hours_can*100)/total_hours,
+            percentageDaysCovered=(total_days_can*100)/len(days),
+            preselected=np.all([res['allHoursCovered'] for res in result]),
+            totalFullDays=total_days_can,
+            coveredDays=[day['day'] for day in result if day['allHoursCovered']],
+            infoPerDay=result,
+            totalHoursToCover=total_hours,
+            totalHoursCovered=total_hours_can,
+            percentageHoursCovered=(total_hours_can*100)/total_hours,
         )
+
         
 
 class AssignUbication:
@@ -127,7 +128,7 @@ class AssignUbication:
             )
 
             # comprobamos si el beca puede ser asignado a la ubicacion
-            if beca_schedule_info['porcentajeDiasCubierto'] >= 60 or beca_schedule_info['preseleccionado'] or beca_schedule_info['porcentajeHorasCubiertas'] >= 60:
+            if beca_schedule_info['percentageDaysCovered'] >= 60 or beca_schedule_info['preselected'] or beca_schedule_info['percentageHoursCovered'] >= 60:
                 return beca_schedule_info, ubication
             
             ubication = self.select_random_ubication(checked_ubications=checked_ubication, all_ubications=allubications)
@@ -199,8 +200,8 @@ class AssignUbication:
                                                                         days=selected_schedule_obj['days'])
 
 
-                if (schedule_student_data['porcentajeDiasCubierto']  >= 60) or (schedule_student_data['preseleccionado']) or (schedule_student_data['porcentajeHorasCubiertas'] >= 60):
-                    schedule_student_data['schedule_info'] = {"start": start, "end": end} 
+                if (schedule_student_data['percentageDaysCovered']  >= 60) or (schedule_student_data['preselected']) or (schedule_student_data['percentageHoursCovered'] >= 60):
+                    schedule_student_data['schedule_info'] = {"start": start, "end": end, 'days': selected_schedule_obj['days']} 
                     return schedule_student_data
                 
                 # en caso de que no se cumpla lo anterior, seleccionamos un nuevo horario, pero eliminamos primero el horario seleccionado
@@ -273,8 +274,8 @@ class AssignUbication:
                                                                     days=[day[0] for day in schedulebybeca[random_beca]['days']],
                                                                     is_custom=True)
             
-            if schedule_student_data['porcentajeDiasCubierto']  >= 60 or schedule_student_data['preseleccionado'] or schedule_student_data['porcentajeHorasCubiertas'] >= 60:
-                schedule_student_data['schedule_info'] = schedulebybeca[random_beca]['hours']
+            if schedule_student_data['percentageDaysCovered']  >= 60 or schedule_student_data['preselected'] or schedule_student_data['percentageHoursCovered'] >= 60:
+                schedule_student_data['schedule_info'] = {'hours': schedulebybeca[random_beca]['hours'], 'days': [day[0] for day in schedulebybeca[random_beca]['days']]}
                 schedule_student_data['beca'] = random_beca
                 return schedule_student_data
             
