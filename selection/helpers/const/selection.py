@@ -23,3 +23,9 @@ class SelectionConst:
         "preselected": "Preselected",
         "candidate": "Candidate",
     }
+
+    SCHEDULE_TYPES = {
+        'custom': 'custom',
+        'unifiedWithoutSaturday': 'unifiedWithoutSaturday',
+        'unifiedIncludingSaturday': 'unifiedIncludingSaturday'
+    }

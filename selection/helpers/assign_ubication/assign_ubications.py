@@ -1,7 +1,7 @@
 from ubications.models import Ubication
 from selection.helpers.student_schedule.student_schedule_helpers import ScheduleStudentManager
 from django.db.models.fields.files import FieldFile
-from typing import TypedDict, Union
+from typing import TypedDict, Union, Dict, Literal
 import random 
 import numpy as np
 
@@ -29,6 +29,16 @@ class AssignStatistics:
         totalHoursToCover: int  # Almacena el total de horas a cubrir.
         totalHoursCovered: int  # Almacena el total de horas cubiertas.
         percentageHoursCovered: float  # Almacena el porcentaje de horas cubiertas.
+        beca: str | None
+        schedule_info: Dict[ 
+                                Literal[ 'days', 'hours' ], 
+                                Union [ 
+                                        list[str] , 
+                                        list[  
+                                                Dict[ Literal [ 'start', 'end' ],  str  ]   
+                                            ]
+                                    ] 
+                            ] 
 
     @staticmethod
     def get_statistics(*, subschedules, schedule_student, days, is_custom = False):    
@@ -78,6 +88,8 @@ class AssignStatistics:
             totalHoursToCover=total_hours,
             totalHoursCovered=total_hours_can,
             percentageHoursCovered=(total_hours_can*100)/total_hours,
+            beca=None,
+            schedule_info={}
         )
 
         
@@ -201,7 +213,9 @@ class AssignUbication:
 
 
                 if (schedule_student_data['percentageDaysCovered']  >= 60) or (schedule_student_data['preselected']) or (schedule_student_data['percentageHoursCovered'] >= 60):
-                    schedule_student_data['schedule_info'] = {"start": start, "end": end, 'days': selected_schedule_obj['days']} 
+                    # schedule_student_data['schedule_info'] = {"start": start, "end": end, 'days': selected_schedule_obj['days']} 
+                    schedule_student_data['schedule_info'] = {'hours': [ { 'start': start, 'end': end } ], 'days': selected_schedule_obj['days']}
+                    schedule_student_data['beca'] = None
                     return schedule_student_data
                 
                 # en caso de que no se cumpla lo anterior, seleccionamos un nuevo horario, pero eliminamos primero el horario seleccionado
