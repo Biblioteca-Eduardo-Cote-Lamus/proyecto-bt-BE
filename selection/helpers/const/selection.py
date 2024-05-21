@@ -18,3 +18,8 @@ class SelectionConst:
         "18:00-19:00",
         "19:00-20:00",
     ]
+
+    STATUS_ASSIGNATION = {
+        "preselected": "Preselected",
+        "candidate": "Candidate",
+    }

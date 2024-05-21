@@ -216,12 +216,16 @@ class AssignUbication:
             schedule_index = self.select_random_schedule(checked_schedules=selected_schedule, all_schedules=schedule_data)
 
        
-        return {
-            'days_percentage': 0,
-            'preslected': False,
-            'total_days_can': 0,
-            'days_cumpliment': []
-        }
+        return AssignStatistics.AssignStatisticsResponse(
+            percentageDaysCovered=0,
+            preselected=False,
+            totalFullDays=0,
+            coveredDays=[],
+            infoPerDay=None,
+            totalHoursToCover=0,
+            totalHoursCovered=0,
+            percentageHoursCovered=0,
+        )
 
     def assign_custom_ubication(self,*, schedule, student_schedule):
         """
@@ -282,7 +286,16 @@ class AssignUbication:
             selected_beca_index = self.select_random_schedule(checked_schedules=selected_becas, all_schedules=becas_keys)
 
                 
-        return {}
+        return AssignStatistics.AssignStatisticsResponse(
+            percentageDaysCovered=0,
+            preselected=False,
+            totalFullDays=0,
+            coveredDays=[],
+            infoPerDay=None,
+            totalHoursToCover=0,
+            totalHoursCovered=0,
+            percentageHoursCovered=0,
+        )
     
     def select_random_ubication(self, *, checked_ubications, all_ubications) -> Ubication | None:
         """Funcion que selecciona una ubicacion de manera aleatoria.

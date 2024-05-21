@@ -55,6 +55,8 @@ class AssignationBecas(models.Model):
     beca = models.ForeignKey('selection.BecaTrabajo', on_delete=models.SET_NULL, related_name='assignations', null=True, blank=True)
     # horario al que se asigna la beca
     schedule = models.ForeignKey(Schedule, on_delete=models.SET_NULL, related_name='assignations', null=True, blank=True)
+    # estado de la asignacion (Valores: Preseleccionado, candidato, )
+    status = models.CharField(max_length=50, blank=False, null=False, default='candidato')
 
     class Meta:
         db_table = 'asignaciones_de_becas'

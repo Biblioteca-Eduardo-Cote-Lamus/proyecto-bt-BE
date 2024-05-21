@@ -255,15 +255,6 @@ def register_user(request):
             beca.motivation = data['motivation']
             beca.extra_studies  = data['studies']
             beca.sended_form = True
-
-            # # generamos el horario
-            # random_schedule = assign_random_ubication(beca.schedule)
-            # beca.ubication = random_schedule[0] #asignamos la ubicacion. 
-            
-            # json_schedule = json.dumps(random_schedule[1], indent=4)
-            # # Generamos el horario en formato json.
-            # with open(f"media/becas-trabajo/{beca.code}/horario/horario.json", "w") as outfile:
-            #     outfile.write(json_schedule)
                 
             beca.save()
 
@@ -306,13 +297,13 @@ def confirm_list_step2(request):
     
 @api_view(['GET'])
 def ubication_assign(request):
-    beca = BecaTrabajo.objects.get(pk='1152069')
+    beca = BecaTrabajo.objects.get(pk='1151875')
 
     random_selection = AssignUbication().assign_random_ubication(beca.schedule)
 
     random_selection[0]['ubication'] ={
-        "nombre": random_selection[1].name,
-        "tipoHorario": random_selection[1].schedule_type.name,
+        "name": random_selection[1].name,
+        "scheduleType": random_selection[1].schedule_type.name,
     }
 
     return Response({'ok': True, "data": random_selection[0]}, status=200)
