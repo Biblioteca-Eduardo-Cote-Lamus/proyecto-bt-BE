@@ -8,12 +8,12 @@ from rest_framework.response import Response
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from .models import Selection, SelectionState, BecaTrabajo
-from .serializers import SelectionStateSerializer, BecaTrabajoListForm
+from .serializers import SelectionStateSerializer, BecaTrabajoListForm, AssignationSerializer
 from .utils import get_name_and_last_name, make_random_password, left_time
 import json
-from .helpers import AssignUbication
 from .tasks import asign_ubication_task
-
+from rest_framework.request import Request
+from ubications.models import AssignationBecas, Ubication
 
 @api_view(["GET"])
 def get_current_selection_state(request):
@@ -293,7 +293,43 @@ def confirm_list_step2(request):
     except Exception as e:
         return Response({'ok': False, 'msg': str(e)}, status=500)
 
+
+@api_view(['GET'])
+def get_becas_by_ubication(request: Request):
+    """
+        Vista para obtener los becas candidatos y preseleccionados por ubicacion
+    Returns:
+        _type_: _description_
+    """
+    try:
+        # get the ubication id from the query params
+        ubication_id = request.query_params.get('ubicationId')
     
+        # Obtener la ubicación por su id
+        ubication = Ubication.objects.get(id=ubication_id)
+
+        # Obtener todas las asignaciones de becas a través de los horarios de la ubicación usando select_related y prefetch_related
+        assignations = AssignationBecas.objects.filter(schedule__ubication=ubication).select_related('beca', 'schedule').values(
+            'status', 
+            'beca__code', 
+            'beca__first_name', 
+            'beca__last_name', 
+            'beca__email', 
+            'beca__photo', 
+            'beca__address',
+            'beca__gender',
+            'beca__career',
+            'beca__extra_studies',
+            'beca__motivation',
+        ).distinct()
+
+        becasserializer = AssignationSerializer(data=assignations, many=True)
+        becasserializer.is_valid()
+
+        return Response({'ok': True, 'becas': becasserializer.data}, status=200)        
+    except Exception as e:
+        return Response({'msg': str(e)}, status=500)
+
 @api_view(['GET'])
 def ubication_assign(request):
 
