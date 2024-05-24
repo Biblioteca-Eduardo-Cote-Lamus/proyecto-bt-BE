@@ -12,7 +12,8 @@ from .views import (
     extend_register_form_date,
     confirm_list_step2,
     ubication_assign,
-    get_becas_by_ubication
+    get_becas_by_ubication,
+    statistic_by_beca
 )
 
 urlpatterns = [
@@ -29,4 +30,5 @@ urlpatterns = [
     path( "confirm-register-form", confirm_list_step2, name="Update the current state selection and the current state of becas",),
     path( "ubication-assign", ubication_assign, name="Test the ubication assign",),
     path( "becas-selected-by-ubication", get_becas_by_ubication, name="Get the list of becas assigned by ubication",),
+    path( "becas-statistic", statistic_by_beca, name="Get the statistics in the ubications by beca  ",),
 ]

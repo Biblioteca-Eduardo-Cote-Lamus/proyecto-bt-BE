@@ -1,10 +1,12 @@
 from ubications.models import Ubication
 from selection.helpers.student_schedule.student_schedule_helpers import ScheduleStudentManager
+from selection.helpers import SelectionConst
 from django.db.models.fields.files import FieldFile
 from typing import TypedDict, Union, Dict, Literal
 import random 
 import numpy as np
-
+from django.db.models.manager import BaseManager
+from ubications.models import AssignationBecas
 class AssignStatistics:
 
     class InfoDay(TypedDict):
@@ -39,6 +41,46 @@ class AssignStatistics:
                                             ]
                                     ] 
                             ] 
+    
+    
+    @staticmethod
+    def get_statistics_by_assignation(*, assignations: BaseManager[AssignationBecas]):
+        
+        # obtenemos el tipo de horario de la ubicacion
+        schedule_type = assignations.first().schedule.ubication.schedule_type.name
+       
+        # calculamos las horas libres del beca
+        free_hours = ScheduleStudentManager.get_free_hours(schedule=assignations[0].beca.schedule)['free_schedule_by_day']
+
+        # calculamos los subschedules de la ubicacion y del beca
+        subschedules_ubication = AssignUbication.get_ubication_subschedules_by_assignations(assignations=assignations)
+
+        # obtenemos los dias de la semana que tiene asignado el beca
+        days = [assignation.schedule.days for assignation in assignations] if schedule_type == SelectionConst.SCHEDULE_TYPES['custom'] else assignations[0].schedule.days
+
+        # obtenemos el subschedule del beca acorde al tipo de horario de la ubicacion
+        subschedules_beca = AssignUbication.get_subschedule_student_in_custom_schedule(
+            student_schedule=free_hours, 
+            days=days
+        ) if schedule_type == SelectionConst.SCHEDULE_TYPES['custom'] \
+            else AssignUbication.get_subschedule_student_in_unified_schedule(
+                days=days,
+                student_schedule=free_hours
+                )
+
+        res = AssignStatistics.get_statistics(
+            subschedules=subschedules_ubication,
+            schedule_student=subschedules_beca,
+            days=days,
+            is_custom=schedule_type == SelectionConst.SCHEDULE_TYPES['custom']
+        )
+
+        res['schedule_info'] = {
+            'days': days,
+            'hours': [ { 'start': assignation.schedule.start_hour, 'end': assignation.schedule.end_hour } for assignation in assignations ]
+        }
+
+        return res
 
     @staticmethod
     def get_statistics(*, subschedules, schedule_student, days, is_custom = False):    
@@ -96,15 +138,6 @@ class AssignStatistics:
 
 class AssignUbication:
 
-    # constructor
-    def __init__(self):
-        self._schedule_types = {
-            "unifiedWithoutSaturday": 'unifiedWithoutSaturday',
-            "unifiedIncludingSaturday": 'unifiedIncludingSaturday',
-            "custom": 'custom',
-        }
-
-    
     def assign_random_ubication(self,schedule: Union[ str | FieldFile ]):
         """
             Funcion que asigna una ubicacion de manera aleatoria a un beca.
@@ -200,13 +233,13 @@ class AssignUbication:
                 # extraemos la hora de inicio y fin del horario
                 start, end = hora['start'], hora['end']
 
-                if  'sabado' not in selected_schedule_obj['days'] and len(selected_schedule_obj['days']) == 5: 
-                    schedule_student = list(student_schedule.values())[0:-1]
-                elif 'sabado' in selected_schedule_obj['days'] and len(selected_schedule_obj['days']) == 6:
-                    schedule_student = list(student_schedule.values())
-                else:
-                    schedule_student = [list(student_schedule.values())[-1]]
+                # obtenemos el horario del beca acorde a los dias del horario de la ubicacion
+                schedule_student = self.get_subschedule_student_in_unified_schedule(
+                    student_schedule=student_schedule,
+                    days=selected_schedule_obj['days']
+                )
 
+                # calculamos las estadisticas del beca
                 schedule_student_data = AssignStatistics.get_statistics(subschedules=schedule_ubication['scheduleFormat2'][schedule_index][index_hour],
                                                                         schedule_student=schedule_student,
                                                                         days=selected_schedule_obj['days'])
@@ -250,26 +283,12 @@ class AssignUbication:
             student_schedule (list[str]): Lista de las horas disponibles del beca. cada posicion de la lista corresponde a un dia de la semana.
         """
 
-        def get_index_day(day):
-            if day == 'lunes':
-                return 0
-            if day == 'martes':
-                return 1
-            if day == 'miercoles':
-                return 2
-            if day == 'jueves':
-                return 3
-            if day == 'viernes':
-                return 4
-            if day == 'sabado':
-                return 5
-
         # lo primero es obtener los horarios asignado al beca 
         schedulebybeca = self.get_schedule_by_beca(schedule=schedule['schedule'])
         selected_becas = set()
         becas_keys = list(schedulebybeca.keys())
 
-        selected_beca_index = self.select_random_schedule(checked_schedules=selected_becas, all_schedules=becas_keys)
+        selected_beca_index =self.select_random_schedule(checked_schedules=selected_becas, all_schedules=becas_keys)
 
         while selected_beca_index is not None:
 
@@ -279,8 +298,10 @@ class AssignUbication:
             random_beca = becas_keys[selected_beca_index]
 
             # del horario de estudiante, extraemos solo los dias que tiene asignado el beca
-            indexes_days = [get_index_day(day[0]) for day in schedulebybeca[random_beca]['days']] 
-            subschedulestudent = [ list(student_schedule.values())[index] for index in indexes_days ]
+            subschedulestudent = self.get_subschedule_student_in_custom_schedule(
+                student_schedule=student_schedule,
+                days=schedulebybeca[random_beca]['days']
+            )
 
             #  calculamos las estadisticas del beca
             subschedules = [ 
@@ -310,7 +331,52 @@ class AssignUbication:
             totalHoursCovered=0,
             percentageHoursCovered=0,
         )
-    
+
+    @staticmethod
+    def get_subschedule_student_in_custom_schedule( *, student_schedule, days) -> list:
+        """Funcion que obtiene los horarios asignados al beca en el horario personalizado.
+
+        Args:
+            student_schedule (array 2d de numpy): Horario del beca. Cada fila corresponde a la franja horaria entre 6am a 22pm donde el indice 0 es la hora y apartir del 1 en adelante corresponde al dia de la seamana.
+                en este caso, no se debe de incluir la franja horaria en la posicion 0. en su caso, deben de empezar los dias de la semana apartir de la posicion 0.
+            days (list[str]): Listado de los dias de la semana que tiene asignado el beca.  
+
+        Returns:
+            list: Lista de los horarios que el beca debe de cubrir en el horario personalizado.
+        """
+
+        if type(days[0]) == tuple:
+            indexes_days = [SelectionConst.get_index_days((day[0])) for day in days] 
+        else:
+            indexes_days = [SelectionConst.get_index_days((day)) for day in days] 
+        
+        return [ list(student_schedule.values())[index] for index in indexes_days ]
+
+    @staticmethod
+    def get_subschedule_student_in_unified_schedule( *, student_schedule, days) -> list:
+        """
+            Obtiene el horario de un estudiante dentro de un horario unificado basado en los días proporcionados.
+
+            Args:
+                student_schedule (Array de np): Horarios libre del estudiante.
+                days (list): Lista de días de la semana sobre los cuales se va a filtrar el horario del estudiante.
+
+            Returns:
+                list: Una lista de horarios del estudiante correspondientes a los días especificados.
+
+            Raises:
+                None: No se generan excepciones dentro de esta función.
+        """
+
+        if  'sabado' not in days and len(days) == 5: 
+            schedule_student = list(student_schedule.values())[0:-1]
+        elif 'sabado' in days and len(days) == 6:
+            schedule_student = list(student_schedule.values())
+        else:
+            schedule_student = [list(student_schedule.values())[-1]]
+
+        return schedule_student
+
     def select_random_ubication(self, *, checked_ubications, all_ubications) -> Ubication | None:
         """Funcion que selecciona una ubicacion de manera aleatoria.
 
@@ -354,7 +420,7 @@ class AssignUbication:
         Returns:
             bool: True si el horario es personalizado, False en caso contrario.
         """
-        return schedule_type == self._schedule_types['custom']
+        return schedule_type == SelectionConst.SCHEDULE_TYPES['custom']
     
     def get_schedule_by_beca(self, *, schedule):
         """Funcion que obtiene los horarios asignados a cada beca.
@@ -432,6 +498,51 @@ class AssignUbication:
                             }
 
         return horarios_por_beca 
+
+    @staticmethod
+    def get_ubication_subschedules_by_assignations(*, assignations: BaseManager[AssignationBecas]):
+        """
+            Obtiene los sub-horarios de una ubicación basados en las asignaciones de becas proporcionadas.
+
+        Args:
+            assignations (BaseManager[AssignationBecas]): Conjunto de asignaciones de becas para filtrar los sub-horarios.
+
+        Returns:
+            list: Una lista de sub-horarios de la ubicación que coinciden con las asignaciones de becas proporcionadas.
+
+        Raises:
+                Any: Puede generar varias excepciones durante la ejecución, como IndexError o KeyError, si los datos son inconsistentes.
+        """
+        # obtenemos el horario de la ubicacion
+        ubication_schedule = assignations[0].schedule.ubication.schedule_format.schedule
+        # lista de dias de la semana correspondiente a los horarios de la ubicacion
+        info = {
+            "days": [],
+            "start_hours": [],
+            "end_hours": []
+        }
+
+        # recorremos cada asignacion y guardamos los dias y horas de inicio y fin de los horarios
+        for assignation in assignations:
+            info['days'].append(assignation.schedule.days)
+            info['start_hours'].append(assignation.schedule.start_hour)
+            info['end_hours'].append(assignation.schedule.end_hour)
+
+
+        subschedules = []
+        # # recorremos cada horario de la ubicacion en la propiedad schedule
+        for index, schedule in enumerate(ubication_schedule['schedule']):
+            # si el dia del horario esta en las asignaciones, guardamos el indice del horario
+            if schedule['days'][0] in info['days']:
+
+                for  subindex, hour in enumerate(schedule['hours']):
+                    if hour['start'] in info['start_hours'] and hour['end'] in info['end_hours']:
+                        subschedules.append(ubication_schedule['scheduleFormat2'][index][subindex])
+                        break
+        
+        return subschedules
+
+
 
 
 

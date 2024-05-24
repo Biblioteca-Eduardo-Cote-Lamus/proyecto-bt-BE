@@ -1,5 +1,3 @@
-from typing import Dict, Literal
-
 class SelectionConst:
     # Selection
     LIBRARY_SCHEDULE = [
@@ -29,3 +27,14 @@ class SelectionConst:
         'unifiedWithoutSaturday': 'unifiedWithoutSaturday',
         'unifiedIncludingSaturday': 'unifiedIncludingSaturday'
     }
+
+    @staticmethod
+    def get_index_days(day: str) -> int:
+        return {
+            "lunes": 0,
+            "martes": 1,
+            "miercoles": 2,
+            "jueves": 3,
+            "viernes": 4,
+            "sabado": 5,
+        }[day]

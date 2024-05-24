@@ -11,9 +11,10 @@ from .models import Selection, SelectionState, BecaTrabajo
 from .serializers import SelectionStateSerializer, BecaTrabajoListForm, AssignationSerializer
 from .utils import get_name_and_last_name, make_random_password, left_time
 import json
-from .tasks import asign_ubication_task
 from rest_framework.request import Request
 from ubications.models import AssignationBecas, Ubication
+from .helpers import AssignStatistics, AssignUbication
+
 
 @api_view(["GET"])
 def get_current_selection_state(request):
@@ -329,10 +330,37 @@ def get_becas_by_ubication(request: Request):
         return Response({'ok': True, 'becas': becasserializer.data}, status=200)        
     except Exception as e:
         return Response({'msg': str(e)}, status=500)
+    
+@api_view(['GET'])
+def statistic_by_beca(request):
+    """
+        Funcion para obtener las estadistica de un beca especifico.
+    """
+    try:
+        beca_id = request.query_params.get('becaId')
+
+        assignations = AssignationBecas.objects.filter(beca_id=beca_id).select_related('schedule__ubication')
+
+        statistic = AssignStatistics.get_statistics_by_assignation(assignations=assignations)
+        
+        return Response({'ok': True, 'data': statistic}, status=200)
+
+    except Exception as e:
+        e.with_traceback()
+        return Response({'msg': str(e)}, status=500)
+
+
+
 
 @api_view(['GET'])
 def ubication_assign(request):
 
-    asign_ubication_task.delay('1151875')
+    beca = BecaTrabajo.objects.get(code=1152069)
+
+    res = AssignUbication().assign_random_ubication(beca.schedule)
+
+    res[0]['ubication'] = {
+        'name': res[1].name,
+    }
     
-    return Response({'ok': True, "data": f"Se ha enviado a procesar la informacion del beca con codigo 1151875"}, status=200)
+    return Response({'ok': True, "data": res[0]}, status=200)
