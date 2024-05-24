@@ -54,9 +54,9 @@ class AssignStatistics:
 
         # calculamos los subschedules de la ubicacion y del beca
         subschedules_ubication = AssignUbication.get_ubication_subschedules_by_assignations(assignations=assignations)
-
+        
         # obtenemos los dias de la semana que tiene asignado el beca
-        days = [assignation.schedule.days for assignation in assignations] if schedule_type == SelectionConst.SCHEDULE_TYPES['custom'] else assignations[0].schedule.days
+        days = [assignation.schedule.days for assignation in assignations] if schedule_type == SelectionConst.SCHEDULE_TYPES['custom'] else assignations[0].schedule.days.split(', ')
 
         # obtenemos el subschedule del beca acorde al tipo de horario de la ubicacion
         subschedules_beca = AssignUbication.get_subschedule_student_in_custom_schedule(
@@ -79,6 +79,8 @@ class AssignStatistics:
             'days': days,
             'hours': [ { 'start': assignation.schedule.start_hour, 'end': assignation.schedule.end_hour } for assignation in assignations ]
         }
+
+        res['beca_schedule'] = free_hours
 
         return res
 
@@ -105,7 +107,7 @@ class AssignStatistics:
                 subschedule = subschedules[index]
                 hours_can =  np.in1d(subschedule,  scheduleday)
             else: 
-                subschedule = subschedules
+                subschedule = subschedules[-1]
                 hours_can =  np.in1d(subschedule,  scheduleday)
 
             result.append(
@@ -533,7 +535,7 @@ class AssignUbication:
         # # recorremos cada horario de la ubicacion en la propiedad schedule
         for index, schedule in enumerate(ubication_schedule['schedule']):
             # si el dia del horario esta en las asignaciones, guardamos el indice del horario
-            if schedule['days'][0] in info['days']:
+            if (schedule['days'][0] in info['days']) or (schedule['days'][0] in info['days'][-1]):
 
                 for  subindex, hour in enumerate(schedule['hours']):
                     if hour['start'] in info['start_hours'] and hour['end'] in info['end_hours']:
