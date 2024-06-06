@@ -90,7 +90,7 @@ def get_assignations_objs(info, schedules_ids, beca_id) -> list[AssignationBecas
         status = SelectionConst.STATUS_ASSIGNATION['candidate']
     
     return [
-        AssignationBecas(beca_id=beca_id, schedule_id=schedule_id, status=status) 
+        AssignationBecas(beca_id=beca_id, schedule_id=schedule_id, status=status, percentage=info['percentageHoursCovered']) 
         for schedule_id in schedules_ids
     ]
 

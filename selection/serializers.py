@@ -26,7 +26,9 @@ class AssignationSerializer(serializers.Serializer):
             'career': obj['beca__career'],
             'extra_studies': obj['beca__extra_studies'],
             'motivation': obj['beca__motivation'],
-            'status': obj['status']
+            'status': obj['status'],
+            'percentage': obj['percentage'],
+            'notified': obj['notified'],
         }
         return beca_data
 class BecaTrabajoListForm(serializers.ModelSerializer):

@@ -58,6 +58,10 @@ class AssignationBecas(models.Model):
     # estado de la asignacion (Valores: Preseleccionado, candidato, )
     status = models.CharField(max_length=50, blank=False, null=False, default='candidato')
 
+    percentage = models.FloatField(blank=False, null=False, default=60)
+
+    notified = models.BooleanField(blank=False, null=False, default=False)
+
     class Meta:
         db_table = 'asignaciones_de_becas'
         # Se define que la combinacion de beca y horario debe ser unica

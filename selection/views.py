@@ -312,6 +312,8 @@ def get_becas_by_ubication(request: Request):
         # Obtener todas las asignaciones de becas a través de los horarios de la ubicación usando select_related y prefetch_related
         assignations = AssignationBecas.objects.filter(schedule__ubication=ubication).select_related('beca', 'schedule').values(
             'status', 
+            'percentage',
+            'notified',
             'beca__code', 
             'beca__first_name', 
             'beca__last_name', 
@@ -328,6 +330,60 @@ def get_becas_by_ubication(request: Request):
         becasserializer.is_valid()
 
         return Response({'ok': True, 'becas': becasserializer.data}, status=200)        
+    except Exception as e:
+        return Response({'msg': str(e)}, status=500)
+
+@api_view(['POST'])
+def notify_becas(request):
+    """
+        Vista para notificar a los becas seleccionados al correo electrónico.
+    Returns:
+        _type_: _description_
+    """
+    try:  
+        # TODO: Implementar la notificación por correo electrónico
+
+        ids_list = request.data.get('becasIds', [])
+
+        if(len(ids_list) == 0):
+            return Response({'ok': False, 'msg': 'No se ha seleccionado ningun beca.'}, status=400)
+        
+        AssignationBecas.objects.filter(beca_id__in=ids_list).update(notified=True)
+
+        return Response(
+            {'ok': True, 'msg': 'Se ha notificado a los becas seleccionados.'}, 
+            status=200
+        )
+    
+    except Exception as e:
+        return Response({'msg': str(e)}, status=500)
+
+@api_view(['GET'])
+def get_list_notified_becas(request):
+    """
+        Metodo para obtener la lista de becas notificados.
+    """
+    try:
+        assignations = AssignationBecas.objects.select_related('beca', 'schedule').values(
+            'status', 
+            'percentage',
+            'notified',
+            'beca__code', 
+            'beca__first_name', 
+            'beca__last_name', 
+            'beca__email', 
+            'beca__photo', 
+            'beca__address',
+            'beca__gender',
+            'beca__career',
+            'beca__extra_studies',
+            'beca__motivation',
+        ).distinct().filter(notified=True)
+
+        becasserializer = AssignationSerializer(data=assignations, many=True)
+        becasserializer.is_valid()
+
+        return Response({'ok': True, 'becas': becasserializer.data}, status=200)  
     except Exception as e:
         return Response({'msg': str(e)}, status=500)
     
