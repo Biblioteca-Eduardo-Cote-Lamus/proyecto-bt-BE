@@ -48,7 +48,8 @@ INSTALLED_APPS = [
     "corsheaders",
     "authApi.apps.AuthapiConfig",
     "selection.apps.SelectionConfig",
-    "ubications.apps.UbicationsConfig"
+    "ubications.apps.UbicationsConfig",
+    "managers.apps.ManagersConfig",
 ]
 
 REST_FRAMEWORK = {

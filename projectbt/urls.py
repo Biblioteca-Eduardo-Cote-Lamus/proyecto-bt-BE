@@ -18,11 +18,13 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('auth/', include('authApi.urls')),
     path('selection/', include('selection.urls')),
     path('ubications/', include('ubications.urls')),
+    path('managers/', include('managers.urls')),
 ]
 
 if settings.DEBUG:
