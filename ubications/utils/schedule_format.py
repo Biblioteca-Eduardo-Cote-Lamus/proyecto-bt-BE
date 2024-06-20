@@ -30,9 +30,31 @@ def schedule_formart(schedule):
 
         Args:
             schedule (dict): Diccionario con la informacion del tipo de horario y la los horarios por dia
-                            { scheduleType: str, schedule: list}
+                            { scheduleFormat: list<list<str>>, scheduleFormat2: list<list<List<str>>> }
     """
-    return  list( map(__schedule_obj, schedule['schedule']) )
+
+    def gen_schedule_format_flat(schedule):
+        """
+            Esta funcion se encarga de aplanar los rangos de hora por cada dia en un solo arreglo. 
+        Args:
+            schedule (list): Una lista de lista de lista [[[]]] de string con los horarios de cada dia
+
+        Returns:
+           list: Retorna una lista de lista de string con los horarios de cada dia [  [], [], ..., [] ]
+        """
+        aplanado = []
+
+        for dia in schedule:
+            aplanado.append([])
+            for subdia in dia:
+                aplanado[-1].extend(subdia)
+        return aplanado
+
+    schedules = list( map(__schedule_obj, schedule['schedule']) )
+    return  {
+        "scheduleFormat": gen_schedule_format_flat(schedules),
+        "scheduleFormat2": schedules
+    }
 
 def __schedule_obj(schedule):
     """
@@ -49,10 +71,11 @@ def __schedule_obj(schedule):
     #ejemplo, [ ['06:00-07:00', '07:00-08:0'], ['10:00-11:00'] ] deberiamos obtener [ '06:00-07:00', '07:00-08:0', '10:00-11:00' ]
     # para lograr ese se hace uso de un lista comprimida
 
-    return [
-        hour for rangeHoursList in list(map(__generate_hours_between, schedule['hours'])) \
-        for hour in rangeHoursList
-    ]
+    # return [
+    #     hour for rangeHoursList in list(map(__generate_hours_between, schedule['hours'])) \
+    #     for hour in rangeHoursList
+    # ]
+    return list(map(__generate_hours_between, schedule['hours']))
 
 def __generate_hours_between(hours):
     """

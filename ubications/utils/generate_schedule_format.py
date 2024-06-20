@@ -27,6 +27,5 @@ def generate_schedule_format(ubication):
             } for day, schedules in schedules_by_days.items()
         ],
     }
-    hours_between = schedule_formart(scheduleObj)
-    scheduleObj['scheduleFormat'] = hours_between
+    scheduleObj.update(schedule_formart(scheduleObj))
     return scheduleObj

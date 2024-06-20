@@ -1,11 +1,6 @@
 from rest_framework import serializers
-from django.conf import settings
 from .models import Ubication
-from .consts import SCHEDULE_OFFICE_HOURS
 from authApi.models import Usuario
-from .utils import schedule_formart
-from collections import defaultdict
-import json
 
 
 class UbicationSerializer(serializers.ModelSerializer):
@@ -29,6 +24,11 @@ class UbicationSerializer(serializers.ModelSerializer):
         model = Ubication
         fields = ['id', 'name', 'total_becas', 'manager',  'schedule', 'img', 'description']
 
+
+class UbicationNameSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Ubication
+        fields = ['id', 'name']
 
 class ManagerSerializer(serializers.ModelSerializer):
 

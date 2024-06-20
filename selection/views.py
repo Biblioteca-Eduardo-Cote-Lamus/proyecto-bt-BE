@@ -8,11 +8,12 @@ from rest_framework.response import Response
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from .models import Selection, SelectionState, BecaTrabajo
-from .serializers import SelectionStateSerializer, BecaTrabajoListForm
+from .serializers import SelectionStateSerializer, BecaTrabajoListForm, AssignationSerializer
 from .utils import get_name_and_last_name, make_random_password, left_time
 import json
-# from .utils.assign_ubication import assign_random_ubication
-from ubications.models import Ubication
+from rest_framework.request import Request
+from ubications.models import AssignationBecas, Ubication
+from .helpers import AssignStatistics, AssignUbication
 
 
 @api_view(["GET"])
@@ -254,15 +255,6 @@ def register_user(request):
             beca.motivation = data['motivation']
             beca.extra_studies  = data['studies']
             beca.sended_form = True
-
-            # # generamos el horario
-            # random_schedule = assign_random_ubication(beca.schedule)
-            # beca.ubication = random_schedule[0] #asignamos la ubicacion. 
-            
-            # json_schedule = json.dumps(random_schedule[1], indent=4)
-            # # Generamos el horario en formato json.
-            # with open(f"media/becas-trabajo/{beca.code}/horario/horario.json", "w") as outfile:
-            #     outfile.write(json_schedule)
                 
             beca.save()
 
@@ -302,4 +294,129 @@ def confirm_list_step2(request):
     except Exception as e:
         return Response({'ok': False, 'msg': str(e)}, status=500)
 
+
+@api_view(['GET'])
+def get_becas_by_ubication(request: Request):
+    """
+        Vista para obtener los becas candidatos y preseleccionados por ubicacion
+    Returns:
+        _type_: _description_
+    """
+    try:
+        # get the ubication id from the query params
+        ubication_id = request.query_params.get('ubicationId')
     
+        # Obtener la ubicación por su id
+        ubication = Ubication.objects.get(id=ubication_id)
+
+        # Obtener todas las asignaciones de becas a través de los horarios de la ubicación usando select_related y prefetch_related
+        assignations = AssignationBecas.objects.filter(schedule__ubication=ubication).select_related('beca', 'schedule').values(
+            'status', 
+            'percentage',
+            'notified',
+            'beca__code', 
+            'beca__first_name', 
+            'beca__last_name', 
+            'beca__email', 
+            'beca__photo', 
+            'beca__address',
+            'beca__gender',
+            'beca__career',
+            'beca__extra_studies',
+            'beca__motivation',
+        ).distinct()
+
+        becasserializer = AssignationSerializer(data=assignations, many=True)
+        becasserializer.is_valid()
+
+        return Response({'ok': True, 'becas': becasserializer.data}, status=200)        
+    except Exception as e:
+        return Response({'msg': str(e)}, status=500)
+
+@api_view(['POST'])
+def notify_becas(request):
+    """
+        Vista para notificar a los becas seleccionados al correo electrónico.
+    Returns:
+        _type_: _description_
+    """
+    try:  
+        # TODO: Implementar la notificación por correo electrónico
+
+        ids_list = request.data.get('becasIds', [])
+
+        if(len(ids_list) == 0):
+            return Response({'ok': False, 'msg': 'No se ha seleccionado ningun beca.'}, status=400)
+        
+        AssignationBecas.objects.filter(beca_id__in=ids_list).update(notified=True)
+
+        return Response(
+            {'ok': True, 'msg': 'Se ha notificado a los becas seleccionados.'}, 
+            status=200
+        )
+    
+    except Exception as e:
+        return Response({'msg': str(e)}, status=500)
+
+@api_view(['GET'])
+def get_list_notified_becas(request):
+    """
+        Metodo para obtener la lista de becas notificados.
+    """
+    try:
+        assignations = AssignationBecas.objects.select_related('beca', 'schedule').values(
+            'status', 
+            'percentage',
+            'notified',
+            'beca__code', 
+            'beca__first_name', 
+            'beca__last_name', 
+            'beca__email', 
+            'beca__photo', 
+            'beca__address',
+            'beca__gender',
+            'beca__career',
+            'beca__extra_studies',
+            'beca__motivation',
+        ).distinct().filter(notified=True)
+
+        becasserializer = AssignationSerializer(data=assignations, many=True)
+        becasserializer.is_valid()
+
+        return Response({'ok': True, 'becas': becasserializer.data}, status=200)  
+    except Exception as e:
+        return Response({'msg': str(e)}, status=500)
+    
+@api_view(['GET'])
+def statistic_by_beca(request):
+    """
+        Funcion para obtener las estadistica de un beca especifico.
+    """
+    try:
+        beca_id = request.query_params.get('becaId')
+
+        assignations = AssignationBecas.objects.filter(beca_id=beca_id).select_related('schedule__ubication')
+
+        statistic = AssignStatistics.get_statistics_by_assignation(assignations=assignations)
+        
+        return Response({'ok': True, 'data': statistic}, status=200)
+
+    except Exception as e:
+        e.with_traceback()
+        return Response({'msg': str(e)}, status=500)
+
+
+
+
+@api_view(['GET'])
+def ubication_assign(request):
+
+    beca = BecaTrabajo.objects.get(code=1152069)
+
+    res = AssignUbication().assign_random_ubication(beca.schedule)
+
+    res[0]['ubication'] = {
+        'name': res[1].name,
+    }
+    
+    return Response({'ok': True, "data": res[0]}, status=200)

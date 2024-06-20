@@ -24,7 +24,7 @@ class Ubication(models.Model):
     # Imagen de la ubicacion para reconocerla 
     img = models.ImageField(upload_to=photo_path, blank=True, null=True)
     # Tipo de horario que se maneja en la ubicacion (Valores: Unificado exluyendo sabado, unificado incluyendo sabado, personalizado)
-    schedule_type = models.OneToOneField(ScheduleType, on_delete=models.SET_NULL, null=True)
+    schedule_type = models.ForeignKey(ScheduleType, on_delete=models.SET_NULL, null=True)
         
     class Meta:
         db_table = 'ubicaciones'
@@ -55,6 +55,12 @@ class AssignationBecas(models.Model):
     beca = models.ForeignKey('selection.BecaTrabajo', on_delete=models.SET_NULL, related_name='assignations', null=True, blank=True)
     # horario al que se asigna la beca
     schedule = models.ForeignKey(Schedule, on_delete=models.SET_NULL, related_name='assignations', null=True, blank=True)
+    # estado de la asignacion (Valores: Preseleccionado, candidato, )
+    status = models.CharField(max_length=50, blank=False, null=False, default='candidato')
+
+    percentage = models.FloatField(blank=False, null=False, default=60)
+
+    notified = models.BooleanField(blank=False, null=False, default=False)
 
     class Meta:
         db_table = 'asignaciones_de_becas'

@@ -3,12 +3,11 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from .models import Ubication, ScheduleType, Schedule, ScheduleFormat
 from django.db import transaction
-from .serializers import UbicationSerializer, ManagerSerializer
+from .serializers import UbicationSerializer, ManagerSerializer, UbicationNameSerializer
 from django.contrib.auth import get_user_model
 from selection.models import Selection
 from django.db.models import Sum
-from django.core.exceptions import ObjectDoesNotExist
-from .utils import verify_schedule, schedule_formart, generate_schedule_format
+from .utils import verify_schedule, generate_schedule_format
 
 @api_view(['POST'])
 def create_ubication(request):
@@ -232,3 +231,16 @@ def check_total_becas(request):
             "ok": False
         }, status=500)
     
+
+@api_view(['GET'])
+def get_list_ubications_name(request):
+    """
+        Vista para obtener la lista de ubicaciones en el sistema (solo id y nombre)
+    """
+    try:
+        response = UbicationNameSerializer(Ubication.objects.all(), many=True)
+        return Response({
+            "ubications": response.data
+        })
+    except Exception as e:
+        return Response({"message": str(e)}, status=500)
