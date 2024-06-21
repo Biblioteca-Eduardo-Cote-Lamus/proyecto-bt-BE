@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     "selection.apps.SelectionConfig",
     "ubications.apps.UbicationsConfig",
     "managers.apps.ManagersConfig",
+    'documents.apps.DocumentsConfig',
 ]
 
 REST_FRAMEWORK = {

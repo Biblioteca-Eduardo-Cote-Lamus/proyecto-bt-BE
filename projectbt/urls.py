@@ -25,6 +25,7 @@ urlpatterns = [
     path('selection/', include('selection.urls')),
     path('ubications/', include('ubications.urls')),
     path('managers/', include('managers.urls')),
+    path('documents/', include('documents.urls')),
 ]
 
 if settings.DEBUG:
