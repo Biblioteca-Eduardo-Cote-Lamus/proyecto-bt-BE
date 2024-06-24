@@ -15,7 +15,8 @@ from .views import (
     get_becas_by_ubication,
     statistic_by_beca,
     notify_becas,
-    get_list_notified_becas
+    get_list_notified_becas,
+    select_beca
 )
 
 urlpatterns = [
@@ -35,4 +36,5 @@ urlpatterns = [
     path( "becas-statistic", statistic_by_beca, name="Get the statistics in the ubications by beca  ",),
     path( "notify-becas-email", notify_becas, name="Notify becas email",),
     path( "list-notifies-becas", get_list_notified_becas, name="get the Notify becas list",),
+    path( "select-beca",  select_beca, name="select a beca",),
 ]

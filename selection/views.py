@@ -7,9 +7,9 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.contrib.auth import get_user_model
 from django.db import transaction
-from .models import Selection, SelectionState, BecaTrabajo
+from .models import Selection, SelectionState, BecaTrabajo, BecaSchedule
 from .serializers import SelectionStateSerializer, BecaTrabajoListForm, AssignationSerializer
-from .utils import get_name_and_last_name, make_random_password, left_time
+from .utils import get_name_and_last_name, make_random_password, left_time, validate_schedule
 import json
 from rest_framework.request import Request
 from ubications.models import AssignationBecas, Ubication
@@ -364,7 +364,7 @@ def get_list_notified_becas(request):
         Metodo para obtener la lista de becas notificados.
     """
     try:
-        assignations = AssignationBecas.objects.select_related('beca', 'schedule').values(
+        assignations = AssignationBecas.objects.select_related('beca', 'schedule', 'ubication').values(
             'status', 
             'percentage',
             'notified',
@@ -378,6 +378,8 @@ def get_list_notified_becas(request):
             'beca__career',
             'beca__extra_studies',
             'beca__motivation',
+            'schedule__ubication__name',
+            'schedule__ubication__id'
         ).distinct().filter(notified=True)
 
         becasserializer = AssignationSerializer(data=assignations, many=True)
@@ -406,7 +408,66 @@ def statistic_by_beca(request):
         return Response({'msg': str(e)}, status=500)
 
 
+@api_view(['POST'])
+def select_beca(request):
+    """
+        Vista que recibe el beca y el horario creado, para ser seleccionado.
+    """
+    try:
+        current_selection = Selection.objects.last()
 
+        if not current_selection.active:
+            return Response({'ok': False, 'msg': 'El proceso de selección no está activo.'}, status=400)
+        
+        if not current_selection.current_state_id == 3:
+            return Response({'ok': False, 'msg': 'El proceso de selección no está en la etapa de preselección.'}, status=400)
+        
+        beca = request.data.get('becaId', None)
+        schedule = request.data.get('schedule', None)
+        ubicationId = request.data.get('ubicationId', None)
+
+        if beca is None:
+            return Response({'ok': False, 'msg': 'No se ha seleccionado ningun beca.'}, status=400)
+        
+        if schedule is None:
+            return Response({'ok': False, 'msg': 'No se ha enviado el horario.'}, status=400)
+        
+        if ubicationId is None:
+            return Response({'ok': False, 'msg': 'No se ha enviado la ubicación.'}, status=400)
+        
+        becaobj = BecaTrabajo.objects.get(code=beca)
+
+        valid,msg = validate_schedule(schedule)
+ 
+        # TODO: Implementar validacion del formato del horario 
+        if not valid:
+            return Response({'ok': False, 'msg': msg}, status=400)
+        
+        with transaction.atomic():
+            # crear horario
+            for schedule_item in schedule:
+                day = schedule_item['day']
+                for hour in schedule_item['hours']:
+                    print(hour)
+                    BecaSchedule.objects.create(
+                        day=day,
+                        start_time=hour['start'],
+                        end_time=hour['end'],
+                        beca=becaobj
+                    )
+            # eliminar asignaciones anteriores
+            AssignationBecas.objects.filter(beca=becaobj).delete()
+
+            becaobj.current_state_id = 5
+            becaobj.ubication_id = ubicationId
+            becaobj.save()
+
+        return Response({'ok': True, 'msg': 'Se ha seleccionado al beca.'}, status=200)
+    except BecaTrabajo.DoesNotExist:
+        return Response({'ok': False, 'msg': 'El beca no existe.'}, status=400)
+    except Exception as e:
+        e.with_traceback()
+        return Response({'msg': str(e)}, status=500)
 
 @api_view(['GET'])
 def ubication_assign(request):

@@ -78,3 +78,14 @@ class BecaTrabajo(models.Model):
     class Meta:
         db_table = "becas_trabajo"
         verbose_name = "Becas de trabajo"
+
+class BecaSchedule(models.Model):
+    beca = models.ForeignKey(BecaTrabajo, on_delete=models.CASCADE, blank=True, null=True)
+    day = models.CharField(max_length=50, blank=True, null=True)
+    start_time = models.CharField(max_length=50, blank=True, null=True)
+    end_time = models.CharField(max_length=50, blank=True, null=True)
+
+    class Meta:
+        db_table = "horario_becas"
+        verbose_name = "Horario de beca"
+        verbose_name_plural = "Horarios de becas"
