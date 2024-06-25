@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "ubications.apps.UbicationsConfig",
     "managers.apps.ManagersConfig",
     'documents.apps.DocumentsConfig',
+    'beca.apps.BecaConfig',
 ]
 
 REST_FRAMEWORK = {

@@ -448,7 +448,6 @@ def select_beca(request):
             for schedule_item in schedule:
                 day = schedule_item['day']
                 for hour in schedule_item['hours']:
-                    print(hour)
                     BecaSchedule.objects.create(
                         day=day,
                         start_time=hour['start'],
@@ -465,6 +464,8 @@ def select_beca(request):
         return Response({'ok': True, 'msg': 'Se ha seleccionado al beca.'}, status=200)
     except BecaTrabajo.DoesNotExist:
         return Response({'ok': False, 'msg': 'El beca no existe.'}, status=400)
+    except Ubication.DoesNotExist:
+        return Response({'ok': False, 'msg': 'La ubicación no existe.'}, status=400)
     except Exception as e:
         e.with_traceback()
         return Response({'msg': str(e)}, status=500)

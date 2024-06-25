@@ -26,6 +26,7 @@ urlpatterns = [
     path('ubications/', include('ubications.urls')),
     path('managers/', include('managers.urls')),
     path('documents/', include('documents.urls')),
+    path('becas/', include('beca.urls')),
 ]
 
 if settings.DEBUG:

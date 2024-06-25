@@ -80,7 +80,7 @@ class BecaTrabajo(models.Model):
         verbose_name = "Becas de trabajo"
 
 class BecaSchedule(models.Model):
-    beca = models.ForeignKey(BecaTrabajo, on_delete=models.CASCADE, blank=True, null=True)
+    beca = models.ForeignKey(BecaTrabajo, on_delete=models.CASCADE, blank=True, null=True, related_name="beca_schedules")
     day = models.CharField(max_length=50, blank=True, null=True)
     start_time = models.CharField(max_length=50, blank=True, null=True)
     end_time = models.CharField(max_length=50, blank=True, null=True)
