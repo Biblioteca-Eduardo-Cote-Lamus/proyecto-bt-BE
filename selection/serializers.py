@@ -13,7 +13,7 @@ class AssignationSerializer(serializers.Serializer):
         fullname = ' '.join( 
             map (
                 lambda x: x.capitalize(), 
-                f'{obj['beca__first_name']} {obj['beca__last_name']}'.split(' ')
+                f"{obj['beca__first_name']} {obj['beca__last_name']}".split(' ')
             )  
         )
         beca_data = {

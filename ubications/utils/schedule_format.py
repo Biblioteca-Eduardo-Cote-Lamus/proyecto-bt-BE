@@ -95,12 +95,12 @@ def __generate_hours_between(hours):
     if startValues[1] == 'PM':
         # validamos que no sean las 12
         if not '12' in startValues[0] :
-            startValues[0] = f'{int(startValues[0].split(':')[0]) + 12}:00'
+            startValues[0] = f"{int(startValues[0].split(':')[0]) + 12}:00"
 
     if endValues[1] == 'PM':
         # validamos que no sean las 12
         if not '12' in endValues[0] :
-            endValues[0] = f'{int(endValues[0].split(':')[0]) + 12}:00'
+            endValues[0] = f"{int(endValues[0].split(':')[0]) + 12}:00"
 
 
     #encontramos los indeces y generamos un slice

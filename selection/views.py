@@ -240,8 +240,8 @@ def register_user(request):
     data = json.loads(request.data.get("data"))
     # TODO: Leer el horario del beca y designar a que ubicacion enviarlo. 
     try:
-        photo.name = f'{data['id']}.{photo.name.split('.')[-1]}'
-        schedule.name = f'{data['id']}.{schedule.name.split('.')[-1]}'
+        photo.name = f"{data['id']}.{photo.name.split('.')[-1]}"
+        schedule.name = f"{data['id']}.{schedule.name.split('.')[-1]}"
         with transaction.atomic():
             beca = BecaTrabajo.objects.get(code=str(data['id']))
             beca.first_name = data['names']
