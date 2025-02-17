@@ -1,61 +1,8 @@
 from rest_framework import serializers
-from selection.models import BecaTrabajo
+from .models import Beca
 from collections import defaultdict
 
-#Use this serializer to get the becas of the current selection and their schedules
 class BecaTrabajoSerializer(serializers.Serializer):
-    """
-        Serializer for BecaTrabajo model.
-        Use this serializer to get the becas of the current selection and their schedules
-        return {
-            'beca': {
-                'id': int,
-                'name': str,
-                'last_name': str,
-                'ubication': {
-                    'id': int,
-                    'name': str
-                }
-            },
-            'schedule': {
-                'lunes': [
-                    {
-                        'start': str,
-                        'end': str
-                    }
-                ],
-                'martes': [
-                    {
-                        'start': str,
-                        'end': str
-                    }
-                ],
-                'miercoles': [
-                    {
-                        'start': str,
-                        'end': str
-                    }
-                ],
-                'jueves': [
-                    {
-                        'start': str,
-                        'end': str
-                    }
-                ],
-                'viernes': [
-                    {
-                        'start': str,
-                        'end': str
-                    }
-                ],
-                'sabado': [
-                    {
-                        'start': str,
-                        'end': str
-                    }
-                ]
-        }
-    """
     beca = serializers.SerializerMethodField()
     schedule = serializers.SerializerMethodField()
 
@@ -71,7 +18,6 @@ class BecaTrabajoSerializer(serializers.Serializer):
             }           
         }
     
-
     def get_schedule(self, obj):
         schedules = obj.beca_schedules.all()
 
@@ -93,4 +39,4 @@ class BecaTrabajoSerializer(serializers.Serializer):
         return schedule_format
 
     class Meta:
-        fields = ['beca' 'schedule']
+        fields = ['beca', 'schedule']
